@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Environment
+.env
+.venv/
+venv/
+node_modules/
+
+# Backend (not needed for GitHub Pages)
+backend/
+
+# Build artifacts
+*.apk
+*.log
+.DS_Store
+Thumbs.db
+
+# Data
+data/
+*.db
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+
+# IDE
+.cursor/
+.vscode/
+.idea/

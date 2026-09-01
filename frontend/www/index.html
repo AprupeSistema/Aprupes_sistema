@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="lv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Aprūpes Sistēma</title>
+    <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/setup.css">
+    <link rel="stylesheet" href="css/login.css">
+</head>
+<body>
+    <div id="app">
+        <div id="screen-setup" class="screen active">
+            <div class="setup-container">
+                <h1>Aprūpes Sistēma</h1>
+                <p class="setup-subtitle">Pirmā iestatīšana</p>
+                <div class="setup-step">
+                    <h2>Sākotnējais Administrators</h2>
+                    <input type="text" id="setup-admin-vards" placeholder="Vārds">
+                    <input type="text" id="setup-admin-uzvards" placeholder="Uzvārds">
+                    <input type="password" id="setup-admin-parole" placeholder="Parole">
+                    <input type="password" id="setup-admin-parole2" placeholder="Atkārtoti parole">
+                    <input type="text" id="setup-admin-pin" placeholder="PIN (6 cipari)" inputmode="numeric" maxlength="6">
+                    <input type="text" id="setup-admin-pin2" placeholder="Atkārtoti PIN" inputmode="numeric" maxlength="6">
+                    <p id="setup-error" class="error hidden"></p>
+                    <button id="btn-finish-setup" class="btn btn-primary">Izveidot administratoru</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="screen-login" class="screen">
+            <div class="login-header">
+                <h1>Aprūpes Sistēma</h1>
+                <span id="sync-status" class="sync-status sync-small"></span>
+                <p id="login-date" class="meta"></p>
+            </div>
+            <div class="role-buttons">
+                <button id="btn-admin-login" class="btn btn-secondary">Vadītājs</button>
+                <button id="btn-control-login" class="btn btn-secondary">Kontrolieris</button>
+            </div>
+            <div class="search-container">
+                <input type="text" id="worker-search" placeholder="Meklēt darbinieku...">
+                <div id="worker-list" class="worker-list"></div>
+            </div>
+            <div id="pin-modal" class="modal hidden">
+                <div class="modal-content">
+                    <h2 id="pin-modal-title">PIN</h2>
+                    <input type="password" id="pin-input" maxlength="6" inputmode="numeric">
+                    <div class="pin-keys">
+                        <button class="pin-key" data-val="1">1</button>
+                        <button class="pin-key" data-val="2">2</button>
+                        <button class="pin-key" data-val="3">3</button>
+                        <button class="pin-key" data-val="4">4</button>
+                        <button class="pin-key" data-val="5">5</button>
+                        <button class="pin-key" data-val="6">6</button>
+                        <button class="pin-key" data-val="7">7</button>
+                        <button class="pin-key" data-val="8">8</button>
+                        <button class="pin-key" data-val="9">9</button>
+                        <button class="pin-key clear" data-val="clear" title="Dzēst">C</button>
+                        <button class="pin-key" data-val="0">0</button>
+                        <button class="pin-key backspace" data-val="backspace">←</button>
+                    </div>
+                    <p id="pin-error" class="error hidden"></p>
+                    <div id="24h-checkbox-container" class="checkbox-container">
+                        <input type="checkbox" id="chk-24h" checked>
+                        <label for="chk-24h">Esmu 24h darbinieks</label>
+                    </div>
+                    <button id="btn-pin-cancel" class="btn btn-secondary">Atcelt</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/common.js"></script>
+    <script src="js/cache.js"></script>
+    <script src="js/sqlite.js"></script>
+    <script>
+        (async function() {
+            const setupRes = await fetch(`${API_BASE}/setup/status`).catch(() => null);
+            const setupData = setupRes ? await setupRes.json() : { setup_complete: false };
+            if (setupData.setup_complete && authToken && currentUser) {
+                if (currentUser.loma === 'admin') window.location.href = 'admin.html';
+                else if (currentUser.loma === 'kontrolieris') window.location.href = 'control.html';
+                else window.location.href = 'aprupetajs.html';
+            } else if (setupData.setup_complete) {
+                document.getElementById('screen-setup').classList.remove('active');
+                document.getElementById('screen-login').classList.add('active');
+            } else {
+                document.getElementById('screen-login').classList.remove('active');
+                document.getElementById('screen-setup').classList.add('active');
+            }
+        })();
+    </script>
+    <script src="js/setup.js"></script>
+    <script src="js/login.js"></script>
+</body>
+</html>
