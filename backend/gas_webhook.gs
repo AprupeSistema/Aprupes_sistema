@@ -242,7 +242,7 @@ function handleMark(data) {
   const logSheet = getSheet('atzimes_log');
   const m = data.data;
   const id = 'm_' + Date.now();
-  const today = m.date || Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  const today = m.date || formatDate(new Date());
   const nowStr = new Date().toISOString();
 
   appendRow(atzimesSheet, {
@@ -296,7 +296,7 @@ function handleCreateTask(data) {
 function handleLogDay(data) {
   const sheet = getSheet('dienas_ierakti');
   const id = 'd_' + Date.now();
-  const today = data.data.date || Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  const today = data.data.date || formatDate(new Date());
   appendRow(sheet, {
     id: id,
     klients_id: data.data.clientId,
@@ -313,4 +313,11 @@ function createResponse(status, data) {
   return ContentService
     .createTextOutput(JSON.stringify(data))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+function formatDate(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return y + '-' + m + '-' + day;
 }
