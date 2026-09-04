@@ -365,23 +365,35 @@ class CareFormController {
       </div>
       <div class="section-row">
         <div class="section-row-label">
-          <span>Autiņbiksīšu maiņa (skaits)</span>
-          ${markAutins && markAutins.value ? `<span class="current-value">${markAutins.value}</span>` : '<span class="current-value empty"></span>'}
+          <span>Autiņbiksīšu maiņa</span>
+          <span class="current-value" id="diaperCount">${markAutins && markAutins.value ? markAutins.value + ' šodien' : ''}</span>
         </div>
-        <input type="number" min="0" step="1" class="number-input ${markAutins && markAutins.value ? 'has-value' : ''}" data-cat="citsi_pasakomi" data-field="autins_biksitu_skaits" value="${markAutins ? markAutins.value : ''}" placeholder="0">
+        <button class="opt-btn diaper-btn" data-cat="citsi_pasakomi" data-field="autins_biksitu_skaits" data-shift="${shift}">
+          <span class="diaper-icon">👶</span>
+          <span>+1 maiņa</span>
+        </button>
       </div>
     `;
     return this.sectionCard('section-citi', '📋', 'Citi pasākumi', null, body);
   }
 
   bindFormEvents() {
-    document.querySelectorAll('.opt-btn').forEach(btn => {
+    document.querySelectorAll('.opt-btn:not(.diaper-btn)').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const cat = e.currentTarget.dataset.cat;
         const field = e.currentTarget.dataset.field;
         const value = e.currentTarget.dataset.value;
         const shift = e.currentTarget.dataset.shift;
         this.handleOptionSelect(shift, cat, field, value, e.currentTarget);
+      });
+    });
+
+    document.querySelectorAll('.diaper-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const cat = e.currentTarget.dataset.cat;
+        const field = e.currentTarget.dataset.field;
+        const shift = e.currentTarget.dataset.shift;
+        this.handleDiaperIncrement(shift, cat, field, e.currentTarget);
       });
     });
 
@@ -407,6 +419,63 @@ class CareFormController {
         }
       });
     });
+  }
+
+  async handleDiaperIncrement(shift, category, field, btn) {
+    const key = shift + '|' + category + '|' + field;
+    const existing = this.marks.get(key);
+    const currentCount = existing ? parseInt(existing.value) || 0 : 0;
+    const newCount = currentCount + 1;
+
+    btn.classList.add('pulse');
+    setTimeout(() => btn.classList.remove('pulse'), 300);
+
+    const counter = document.getElementById('diaperCount');
+    if (counter) counter.textContent = newCount + ' šodien';
+
+    await this.saveMark({
+      clientId: this.clientId,
+      shift: shift,
+      category: category,
+      field: field,
+      value: String(newCount),
+      prevValue: existing ? existing.value : null,
+      type: existing ? 'Labots' : 'Jauns'
+    });
+
+    const logEntry = {
+      id: this.db.generateId(),
+      markId: 'diaper_' + Date.now(),
+      clientId: this.clientId,
+      employeeId: this.currentUser.id,
+      date: new Date().toISOString().split('T')[0],
+      time: new Date().toTimeString().split(' ')[0],
+      shift: shift,
+      category: category,
+      field: field,
+      value: '+1 (kopā: ' + newCount + ')',
+      type: 'Jauns',
+      created: new Date().toISOString()
+    };
+    await this.db.add('atzimes_log', logEntry);
+
+    this.sync.enqueueChange({
+      action: 'mark',
+      table: 'atzimes',
+      data: {
+        clientId: this.clientId,
+        employeeId: this.currentUser.id,
+        date: logEntry.date,
+        shift: shift,
+        category: category,
+        field: field,
+        value: String(newCount)
+      }
+    });
+
+    this.toast('✓ Maiņa pievienota (' + newCount + ')');
+    await this.loadHistory();
+    this.renderHistory();
   }
 
   async handleOptionSelect(shift, category, field, value, btn) {

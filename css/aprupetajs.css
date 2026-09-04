@@ -201,10 +201,10 @@ body {
 .section-card {
   background: white;
   border-radius: var(--radius);
-  padding: 16px 18px;
+  padding: 20px 22px;
   box-shadow: var(--shadow-sm);
   transition: var(--transition);
-  border-left: 4px solid var(--info);
+  border-left: 5px solid var(--info);
 }
 
 .section-card.section-temp { border-left-color: var(--danger); }
@@ -227,14 +227,14 @@ body {
 .section-title {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 16px;
+  gap: 10px;
+  font-size: 19px;
   font-weight: 700;
   color: var(--primary);
 }
 
 .section-emoji {
-  font-size: 20px;
+  font-size: 26px;
 }
 
 .section-status {
@@ -256,8 +256,8 @@ body {
 .section-row {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 10px 0;
+  gap: 10px;
+  padding: 14px 0;
   border-bottom: 1px solid var(--gray-lighter);
 }
 
@@ -267,12 +267,13 @@ body {
 }
 
 .section-row-label {
-  font-size: 14px;
+  font-size: 16px;
   color: var(--text);
-  font-weight: 500;
+  font-weight: 600;
   display: flex;
   align-items: center;
   gap: 6px;
+  margin-bottom: 4px;
 }
 
 .section-row-label .current-value {
@@ -291,25 +292,25 @@ body {
 
 .opt-group {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
-  gap: 6px;
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  gap: 10px;
 }
 
 .opt-btn {
-  padding: 12px 14px;
+  padding: 18px 20px;
   border: 2px solid var(--border);
   background: white;
   border-radius: var(--radius-sm);
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 19px;
+  font-weight: 700;
   color: var(--text);
   cursor: pointer;
   transition: var(--transition);
-  min-height: 46px;
+  min-height: 58px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 6px;
 }
 
 .opt-btn:hover {
@@ -346,16 +347,54 @@ body {
   box-shadow: 0 2px 8px rgba(52, 152, 219, 0.3);
 }
 
+.diaper-btn {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%) !important;
+  color: white !important;
+  border: none !important;
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  box-shadow: 0 4px 14px rgba(238, 90, 82, 0.4) !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 64px !important;
+  width: 100%;
+}
+
+.diaper-btn:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 20px rgba(238, 90, 82, 0.5) !important;
+}
+
+.diaper-btn:active {
+  transform: scale(0.97) !important;
+}
+
+.diaper-btn.pulse {
+  animation: pulse 0.3s ease;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.diaper-icon {
+  font-size: 24px;
+}
+
 .number-input {
   width: 100%;
-  padding: 12px 14px;
+  padding: 16px 18px;
   border: 2px solid var(--border);
   border-radius: var(--radius-sm);
-  font-size: 16px;
+  font-size: 18px;
   outline: none;
   transition: var(--transition);
   font-family: inherit;
-  min-height: 46px;
+  min-height: 58px;
 }
 
 .number-input:focus {
