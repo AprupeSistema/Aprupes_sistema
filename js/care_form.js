@@ -141,23 +141,180 @@ class CareFormController {
   }
 
   renderForm() {
-    const container = document.getElementById('formContainer');
-    const fields = CONFIG.FIELD_DEFINITIONS;
+    this.updateCategoryStatuses();
+  }
+
+  updateCategoryStatuses() {
     const shift = this.currentShift;
-    const today = new Date().toISOString().split('T')[0];
 
+    const tempMark = this.getMark(shift, 'temp', 'temperatura');
+    const tempEl = document.getElementById('status-temp');
+    if (tempEl) {
+      if (tempMark && tempMark.value) {
+        const v = parseFloat(tempMark.value);
+        if (!isNaN(v) && v >= 37) {
+          tempEl.textContent = '🔥 ' + tempMark.value + '°C';
+          tempEl.className = 'cat-status alert';
+        } else {
+          tempEl.textContent = '✓ ' + tempMark.value + '°C';
+          tempEl.className = 'cat-status completed';
+        }
+      } else {
+        tempEl.textContent = 'Nav mērīts';
+        tempEl.className = 'cat-status';
+      }
+    }
+
+    const higienaFields = CONFIG.FIELD_DEFINITIONS.higiena.fields;
+    const higienaDone = higienaFields.filter(f => this.getMark(shift, 'higiena', f.field)).length;
+    const higienaEl = document.getElementById('status-higiena');
+    if (higienaEl) {
+      if (higienaDone === higienaFields.length) {
+        higienaEl.textContent = '✓ Viss pabeigts';
+        higienaEl.className = 'cat-status completed';
+      } else if (higienaDone > 0) {
+        higienaEl.textContent = higienaDone + ' / ' + higienaFields.length;
+        higienaEl.className = 'cat-status';
+      } else {
+        higienaEl.textContent = 'Nav sākts';
+        higienaEl.className = 'cat-status';
+      }
+    }
+
+    const aktFields = CONFIG.FIELD_DEFINITIONS.aktivitate.fields;
+    const aktDone = aktFields.filter(f => this.getMark(shift, 'aktivitate', f.field)).length;
+    const aktEl = document.getElementById('status-aktivitate');
+    if (aktEl) {
+      if (aktDone === aktFields.length) {
+        aktEl.textContent = '✓ Viss pabeigts';
+        aktEl.className = 'cat-status completed';
+      } else if (aktDone > 0) {
+        aktEl.textContent = aktDone + ' / ' + aktFields.length;
+        aktEl.className = 'cat-status';
+      } else {
+        aktEl.textContent = 'Nav sākts';
+        aktEl.className = 'cat-status';
+      }
+    }
+
+    const edinFields = CONFIG.FIELD_DEFINITIONS.edinasana.fields;
+    const edinDone = edinFields.filter(f => this.getMark(shift, 'edinasana', f.field)).length;
+    const edinEl = document.getElementById('status-edinasana');
+    if (edinEl) {
+      if (edinDone === edinFields.length) {
+        edinEl.textContent = '✓ Visas ēdienreizes';
+        edinEl.className = 'cat-status completed';
+      } else if (edinDone > 0) {
+        edinEl.textContent = edinDone + ' / ' + edinFields.length;
+        edinEl.className = 'cat-status';
+      } else {
+        edinEl.textContent = 'Nav sākts';
+        edinEl.className = 'cat-status';
+      }
+    }
+
+    const urins = this.getMark(shift, 'sikdrumi', 'urina_daudzums');
+    const uznemts = this.getMark(shift, 'sikdrumi', 'uznemts_ml');
+    const sikEl = document.getElementById('status-sikdrumi');
+    if (sikEl) {
+      if (urins || uznemts) {
+        sikEl.textContent = '✓ Ierakstīts';
+        sikEl.className = 'cat-status completed';
+      } else {
+        sikEl.textContent = 'Nav ierakstu';
+        sikEl.className = 'cat-status';
+      }
+    }
+
+    const fizMark = this.getMark(shift, 'fiziologija', 'vedera_izeja');
+    const fizEl = document.getElementById('status-fiziologija');
+    if (fizEl) {
+      if (fizMark && fizMark.value) {
+        fizEl.textContent = '✓ ' + fizMark.value;
+        fizEl.className = 'cat-status completed';
+      } else {
+        fizEl.textContent = 'Nav ieraksta';
+        fizEl.className = 'cat-status';
+      }
+    }
+
+    const autins = this.getMark(shift, 'citsi_pasakomi', 'autins_biksitu_skaits');
+    const citiEl = document.getElementById('status-citi');
+    if (citiEl) {
+      if (autins && autins.value) {
+        citiEl.textContent = '👶 ' + autins.value + ' maiņas';
+        citiEl.className = 'cat-status completed';
+      } else {
+        citiEl.textContent = 'Nav ierakstu';
+        citiEl.className = 'cat-status';
+      }
+    }
+  }
+
+  setupEventListeners() {
+    document.getElementById('backBtn').addEventListener('click', () => {
+      window.location.href = 'aprupe.html';
+    });
+
+    document.querySelectorAll('.shift-tab').forEach(tab => {
+      tab.addEventListener('click', (e) => {
+        document.querySelectorAll('.shift-tab').forEach(t => t.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+        this.currentShift = e.currentTarget.dataset.shift;
+        this.updateCategoryStatuses();
+      });
+    });
+
+    document.getElementById('signBtn').addEventListener('click', () => {
+      this.handleSign();
+    });
+
+    document.querySelectorAll('.category-card').forEach(card => {
+      card.addEventListener('click', (e) => {
+        const cat = e.currentTarget.dataset.cat;
+        this.openCategoryModal(cat);
+      });
+    });
+
+    document.getElementById('modalClose').addEventListener('click', () => {
+      this.closeCategoryModal();
+    });
+    document.getElementById('categoryModal').addEventListener('click', (e) => {
+      if (e.target.id === 'categoryModal') this.closeCategoryModal();
+    });
+  }
+
+  openCategoryModal(cat) {
+    const modal = document.getElementById('categoryModal');
+    const title = document.getElementById('modalTitle');
+    const body = document.getElementById('modalBody');
+    const shift = this.currentShift;
+    const titles = {
+      temp: '🌡️ Temperatūra',
+      higiena: '🧼 Higiēna',
+      aktivitate: '🚶 Aktivitāte',
+      edinasana: '🍽️ Ēdīšana',
+      sikdrumi: '💧 Šķidrumi',
+      fiziologija: '🚽 Vēdera izeja',
+      citi: '📋 Citi pasākumi'
+    };
+    title.textContent = titles[cat] || cat;
     let html = '';
-
-    html += this.renderTempSection(shift);
-    html += this.renderHigienaSection(shift);
-    html += this.renderAktivitateSection(shift);
-    html += this.renderEdinasanaSection(shift);
-    html += this.renderSikdrumiSection(shift);
-    html += this.renderFiziologijaSection(shift);
-    html += this.renderCitiPasakumiSection(shift);
-
-    container.innerHTML = html;
+    if (cat === 'temp') html = this.renderTempSection(shift);
+    else if (cat === 'higiena') html = this.renderHigienaSection(shift);
+    else if (cat === 'aktivitate') html = this.renderAktivitateSection(shift);
+    else if (cat === 'edinasana') html = this.renderEdinasanaSection(shift);
+    else if (cat === 'sikdrumi') html = this.renderSikdrumiSection(shift);
+    else if (cat === 'fiziologija') html = this.renderFiziologijaSection(shift);
+    else if (cat === 'citi') html = this.renderCitiPasakumiSection(shift);
+    body.innerHTML = html;
+    modal.style.display = 'flex';
     this.bindFormEvents();
+  }
+
+  closeCategoryModal() {
+    document.getElementById('categoryModal').style.display = 'none';
+    this.updateCategoryStatuses();
   }
 
   sectionCard(cssClass, emoji, title, statusKey, body) {
@@ -430,9 +587,6 @@ class CareFormController {
     btn.classList.add('pulse');
     setTimeout(() => btn.classList.remove('pulse'), 300);
 
-    const counter = document.getElementById('diaperCount');
-    if (counter) counter.textContent = newCount + ' šodien';
-
     await this.saveMark({
       clientId: this.clientId,
       shift: shift,
@@ -474,6 +628,7 @@ class CareFormController {
     });
 
     this.toast('✓ Maiņa pievienota (' + newCount + ')');
+    this.openCategoryModal('citi');
     await this.loadHistory();
     this.renderHistory();
   }
@@ -505,9 +660,14 @@ class CareFormController {
       });
     }
 
-    this.renderForm();
+    const catMap = { temp: 'temp', higiena: 'higiena', aktivitate: 'aktivitate', edinasana: 'edinasana', sikdrumi: 'sikdrumi', fiziologija: 'fiziologija', citsi_pasakomi: 'citi' };
+    const openCat = catMap[category];
+    if (openCat) {
+      this.openCategoryModal(openCat);
+    }
     await this.loadHistory();
     this.renderHistory();
+    this.toast('Saglabāts');
   }
 
   async handleNumberChange(category, field, value) {
@@ -521,6 +681,11 @@ class CareFormController {
       type: 'Jauns'
     });
     this.toast('Saglabāts');
+    const catMap = { temp: 'temp', higiena: 'higiena', aktivitate: 'aktivitate', edinasana: 'edinasana', sikdrumi: 'sikdrumi', fiziologija: 'fiziologija', citsi_pasakomi: 'citi' };
+    const openCat = catMap[category];
+    if (openCat) {
+      this.openCategoryModal(openCat);
+    }
     await this.loadHistory();
     this.renderHistory();
   }

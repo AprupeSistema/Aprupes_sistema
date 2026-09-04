@@ -17,6 +17,10 @@
   --warning-bg: #fff3e0;
   --info: #3498db;
   --info-bg: #e3f2fd;
+  --purple: #9b59b6;
+  --purple-bg: #f4ecf7;
+  --teal: #16a085;
+  --teal-bg: #e0f5f1;
   --light: #ecf0f1;
   --gray: #95a5a6;
   --gray-light: #f5f6fa;
@@ -192,10 +196,142 @@ body {
   font-size: 18px;
 }
 
-.form-container {
+.category-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.category-card {
+  background: white;
+  border: none;
+  border-radius: var(--radius);
+  padding: 22px 18px;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: var(--transition);
+  text-align: center;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+  overflow: hidden;
+  min-height: 130px;
+}
+
+.category-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 5px;
+  background: var(--info);
+}
+
+.category-card.cat-temp::before { background: linear-gradient(90deg, #e74c3c, #ff7675); }
+.category-card.cat-higiena::before { background: linear-gradient(90deg, #9b59b6, #c39bd3); }
+.category-card.cat-aktivitate::before { background: linear-gradient(90deg, #3498db, #74b9ff); }
+.category-card.cat-edinasana::before { background: linear-gradient(90deg, #f39c12, #fdcb6e); }
+.category-card.cat-sikdrumi::before { background: linear-gradient(90deg, #27ae60, #55efc4); }
+.category-card.cat-fiziologija::before { background: linear-gradient(90deg, #16a085, #1abc9c); }
+.category-card.cat-citi::before { background: linear-gradient(90deg, #95a5a6, #bdc3c7); }
+
+.category-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
+}
+
+.category-card:active {
+  transform: scale(0.97);
+}
+
+.cat-emoji {
+  font-size: 44px;
+  line-height: 1;
+}
+
+.cat-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.cat-status {
+  font-size: 12px;
+  color: var(--text-light);
+  font-weight: 500;
+  min-height: 18px;
+}
+
+.cat-status.completed {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.cat-status.alert {
+  color: var(--danger);
+  font-weight: 700;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 200;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal-card {
+  background: var(--gray-light);
+  width: 100%;
+  max-width: 800px;
+  max-height: 90vh;
+  border-radius: var(--radius) var(--radius) 0 0;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: white;
+  padding: 10px 16px;
+  border-radius: var(--radius) var(--radius) 0 0;
+  box-shadow: var(--shadow-sm);
+  height: 56px;
+}
+
+.modal-header h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.modal-body {
+  padding: 16px;
+  overflow-y: auto;
+  flex: 1;
 }
 
 .section-card {
@@ -203,55 +339,16 @@ body {
   border-radius: var(--radius);
   padding: 20px 22px;
   box-shadow: var(--shadow-sm);
-  transition: var(--transition);
   border-left: 5px solid var(--info);
 }
 
 .section-card.section-temp { border-left-color: var(--danger); }
-.section-card.section-higiena { border-left-color: #9b59b6; }
+.section-card.section-higiena { border-left-color: var(--purple); }
 .section-card.section-aktivitate { border-left-color: var(--info); }
 .section-card.section-edinasana { border-left-color: var(--warning); }
 .section-card.section-sikdrumi { border-left-color: var(--accent); }
-.section-card.section-fiziologija { border-left-color: #16a085; }
+.section-card.section-fiziologija { border-left-color: var(--teal); }
 .section-card.section-citi { border-left-color: var(--gray); }
-
-.section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 14px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--border);
-}
-
-.section-title {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 19px;
-  font-weight: 700;
-  color: var(--primary);
-}
-
-.section-emoji {
-  font-size: 26px;
-}
-
-.section-status {
-  font-size: 11px;
-  font-weight: 600;
-  padding: 3px 8px;
-  border-radius: 10px;
-  background: var(--gray-light);
-  color: var(--text-light);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.section-status.completed {
-  background: var(--accent-bg);
-  color: var(--accent);
-}
 
 .section-row {
   display: flex;
@@ -273,12 +370,11 @@ body {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: 4px;
 }
 
 .section-row-label .current-value {
   font-size: 12px;
-  padding: 2px 8px;
+  padding: 3px 9px;
   border-radius: 8px;
   background: var(--accent-bg);
   color: var(--accent);
@@ -410,7 +506,7 @@ body {
 }
 
 .temp-input {
-  font-size: 22px;
+  font-size: 26px;
   font-weight: 700;
   text-align: center;
   letter-spacing: 1px;
@@ -603,10 +699,24 @@ body {
   .client-info-name {
     font-size: 19px;
   }
-  .opt-btn {
-    padding: 10px 12px;
+  .category-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .category-card {
+    padding: 18px 12px;
+    min-height: 115px;
+  }
+  .cat-emoji {
+    font-size: 38px;
+  }
+  .cat-title {
     font-size: 14px;
-    min-height: 44px;
+  }
+  .opt-btn {
+    padding: 16px 14px;
+    font-size: 17px;
+    min-height: 54px;
   }
   .header h1 {
     font-size: 15px;

@@ -17,13 +17,11 @@
 
   <main class="main">
     <section class="client-info-card" id="clientInfoCard">
-      <div class="client-info-main">
-        <div class="client-info-name" id="clientName2">...</div>
-        <div class="client-info-meta" id="clientDob"></div>
-      </div>
+      <div class="client-info-name" id="clientName2">...</div>
+      <div class="client-info-meta" id="clientDob"></div>
       <div class="client-info-tags">
-        <span class="info-tag" id="clientDiet">-</span>
-        <span class="info-tag" id="clientSaskarsme">-</span>
+        <span class="info-tag" id="clientDiet"></span>
+        <span class="info-tag" id="clientSaskarsme"></span>
       </div>
     </section>
 
@@ -38,8 +36,42 @@
       </button>
     </div>
 
-    <div id="formContainer" class="form-container">
-      <div class="loading">Ielādēju formu...</div>
+    <div class="category-grid" id="categoryGrid">
+      <button class="category-card cat-temp" data-cat="temp">
+        <div class="cat-emoji">🌡️</div>
+        <div class="cat-title">Temperatūra</div>
+        <div class="cat-status" id="status-temp">—</div>
+      </button>
+      <button class="category-card cat-higiena" data-cat="higiena">
+        <div class="cat-emoji">🧼</div>
+        <div class="cat-title">Higiēna</div>
+        <div class="cat-status" id="status-higiena">—</div>
+      </button>
+      <button class="category-card cat-aktivitate" data-cat="aktivitate">
+        <div class="cat-emoji">🚶</div>
+        <div class="cat-title">Aktivitāte</div>
+        <div class="cat-status" id="status-aktivitate">—</div>
+      </button>
+      <button class="category-card cat-edinasana" data-cat="edinasana">
+        <div class="cat-emoji">🍽️</div>
+        <div class="cat-title">Ēdīšana</div>
+        <div class="cat-status" id="status-edinasana">—</div>
+      </button>
+      <button class="category-card cat-sikdrumi" data-cat="sikdrumi">
+        <div class="cat-emoji">💧</div>
+        <div class="cat-title">Šķidrumi</div>
+        <div class="cat-status" id="status-sikdrumi">—</div>
+      </button>
+      <button class="category-card cat-fiziologija" data-cat="fiziologija">
+        <div class="cat-emoji">🚽</div>
+        <div class="cat-title">Vēdera izeja</div>
+        <div class="cat-status" id="status-fiziologija">—</div>
+      </button>
+      <button class="category-card cat-citi" data-cat="citi">
+        <div class="cat-emoji">📋</div>
+        <div class="cat-title">Citi pasākumi</div>
+        <div class="cat-status" id="status-citi">—</div>
+      </button>
     </div>
 
     <div class="signature-card">
@@ -59,6 +91,17 @@
       </div>
     </div>
   </main>
+
+  <div id="categoryModal" class="modal-overlay" style="display:none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <button id="modalClose" class="btn-icon">←</button>
+        <h2 id="modalTitle">...</h2>
+        <div style="width: 38px;"></div>
+      </div>
+      <div id="modalBody" class="modal-body"></div>
+    </div>
+  </div>
 
   <div id="toast" class="toast"></div>
 
