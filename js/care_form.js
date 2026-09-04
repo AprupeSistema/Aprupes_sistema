@@ -335,7 +335,7 @@ class CareFormController {
       ada: '🧴 Ādas kopšana',
       pastaiga: '🌳 Pastaiga',
       ciemini: '👥 Ciemiņi',
-      diapers: '👶 Autiņbiksīšu maiņa'
+      diapers: '🧻 Higiēnas maiņa'
     };
     title.textContent = titles[cat] || cat;
     let html = '';
@@ -589,18 +589,18 @@ class CareFormController {
           <span class="current-value" id="diaperCountDisplay">${count}</span>
         </div>
         <button class="opt-btn diaper-btn" data-cat="citsi_pasakomi" data-field="autins_biksitu_skaits" data-shift="${shift}">
-          <span class="diaper-icon">👶</span>
+          <span class="diaper-icon">🧻</span>
           <span>+1 maiņa</span>
         </button>
       </div>
       <div class="section-row" style="border-bottom: none;">
         <div style="font-size:13px;color:var(--text-light);text-align:center;padding:8px;">
-          Nospied pogu pēc katras autiņbiksīšu maiņas.<br>
+          Nospied pogu pēc katras higiēnas maiņas.<br>
           Katra maiņa tiek reģistrēta vēsturē ar laiku un aprūpētāja vārdu.
         </div>
       </div>
     `;
-    return this.sectionCard('section-citi', '👶', 'Autiņbiksīšu maiņa', null, body);
+    return this.sectionCard('section-citi', '🧻', 'Higiēnas maiņa', null, body);
   }
 
   bindFormEvents() {
