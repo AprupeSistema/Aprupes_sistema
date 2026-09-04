@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="lv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#2c3e50">
+  <title>Kontroliera panelis</title>
+  <link rel="stylesheet" href="css/admin.css">
+  <link rel="icon" href="logo/logoDS.png" type="image/png">
+</head>
+<body>
+  <header class="header">
+    <button id="backBtn" class="btn-icon">←</button>
+    <h1>Kontroliera panelis</h1>
+    <button id="logoutBtn" class="btn-icon" title="Iziet">⎋</button>
+  </header>
+
+  <main class="main">
+    <section class="filter-bar">
+      <div class="filter-row">
+        <label>Datums:
+          <input type="date" id="dateFilter" value="">
+        </label>
+        <label>Klients:
+          <select id="clientFilter">
+            <option value="">Visi klienti</option>
+          </select>
+        </label>
+        <label>Darbinieks:
+          <select id="employeeFilter">
+            <option value="">Visi</option>
+          </select>
+        </label>
+      </div>
+      <div class="filter-row">
+        <label>
+          <input type="checkbox" id="onlyEdited"> Tikai labotie
+        </label>
+        <button id="refreshBtn" class="btn-primary">Atjaunināt</button>
+        <button id="exportBtn" class="btn-primary">Lejupielādēt Excel</button>
+      </div>
+    </section>
+
+    <section class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Klienti</div>
+        <div class="stat-value" id="statTotal">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Pabeigtas dienas</div>
+        <div class="stat-value" id="statCompleted">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Nepabeigti</div>
+        <div class="stat-value" id="statIncomplete">0</div>
+      </div>
+      <div class="stat-card alert">
+        <div class="stat-label">Temperatūra ≥ 37°C</div>
+        <div class="stat-value" id="statFever">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Šķidrums uzņemts (ml)</div>
+        <div class="stat-value" id="statFluid">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Urīna daudzums (ml)</div>
+        <div class="stat-value" id="statUrine">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Autiņbiksīšu maiņa</div>
+        <div class="stat-value" id="statDiapers">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Labojumi</div>
+        <div class="stat-value" id="statEdits">0</div>
+      </div>
+    </section>
+
+    <section class="data-section">
+      <h2>📋 Detalizēta vēsture</h2>
+      <div class="table-wrapper">
+        <table id="historyTable" class="data-table">
+          <thead>
+            <tr>
+              <th>Laiks</th>
+              <th>Klients</th>
+              <th>Aprūpētājs</th>
+              <th>Kategorija</th>
+              <th>Lauks</th>
+              <th>Vērtība</th>
+              <th>Iepriekšējā</th>
+              <th>Tips</th>
+            </tr>
+          </thead>
+          <tbody id="historyBody">
+            <tr><td colspan="8" class="loading">Nav datu</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="js/config.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/sync.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="js/excel_export.js"></script>
+  <script src="js/control.js"></script>
+</body>
+</html>

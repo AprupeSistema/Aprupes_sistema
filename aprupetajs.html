@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="lv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#2c3e50">
+  <title>Aprūpes forma</title>
+  <link rel="stylesheet" href="css/aprupetajs.css">
+  <link rel="icon" href="logo/logoDS.png" type="image/png">
+</head>
+<body>
+  <header class="header">
+    <button id="backBtn" class="btn-icon">←</button>
+    <h1 id="clientName">...</h1>
+    <span id="syncStatus" class="sync-badge">Saglabāts</span>
+  </header>
+
+  <main class="main">
+    <section class="client-info">
+      <div class="info-row">
+        <span class="info-label">Dzimšanas datums:</span>
+        <span id="clientDob">-</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Diēta:</span>
+        <span id="clientDiet">-</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Saskarsmes īpatnības:</span>
+        <span id="clientSaskarsme">-</span>
+      </div>
+    </section>
+
+    <div class="shift-tabs">
+      <button class="shift-tab active" data-shift="R">Rīts</button>
+      <button class="shift-tab" data-shift="V">Vakars</button>
+    </div>
+
+    <div id="formContainer" class="form-container">
+      <div class="loading">Ielādēju formu...</div>
+    </div>
+
+    <div class="signature-section">
+      <h3>Aprūpētāja paraksts</h3>
+      <button id="signBtn" class="sign-btn">Parakstīties</button>
+      <div id="signedBy" class="signed-by" style="display:none;"></div>
+    </div>
+
+    <div class="history-section">
+      <h3>Šodienas vēsture</h3>
+      <div id="historyContainer" class="history-container">
+        <div class="loading">Nav ierakstu</div>
+      </div>
+    </div>
+  </main>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="js/config.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/sync.js"></script>
+  <script src="js/care_form.js"></script>
+</body>
+</html>

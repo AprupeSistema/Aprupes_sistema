@@ -1,31 +1,18 @@
-# Python
-__pycache__/
-*.pyc
-*.pyo
-
-# Environment
-.env
-.venv/
-venv/
 node_modules/
-
-# Backend (not needed for GitHub Pages)
-backend/
-
-# Build artifacts
-*.apk
 *.log
 .DS_Store
-Thumbs.db
-
-# Data
-data/
-*.db
-*.sqlite
-*.sqlite-wal
-*.sqlite-shm
-
-# IDE
-.cursor/
+.env
+.env.local
+*.tmp
+*.bak
+*.xlsx
 .vscode/
 .idea/
+.mcp.json
+uzdevums.md
+range_aprupe.txt
+Aprupes_sistema.xlsx
+Apru pes lapas.xlsx
+Aprūpes lapas.xlsx
+final_test.xlsx
+test_output.xlsx

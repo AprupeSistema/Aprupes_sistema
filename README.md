@@ -1,153 +1,94 @@
-# Aprūpes Sistēma (BAS)
+# Aprūpes sistēma
 
-Offline-first aprūpes sistēma GitHub Pages + Google Sheets. Dati glabājas Google Sheets (Google ekosistēmā), piekļuve ir tikai no iestādes IP adrešu.
+Bezmaksas sociālās aprūpes dokumentēšanas sistēma, kas strādā ar Google Sheets kā datubāzi un GitHub Pages kā programmas ekrānu.
 
 ## Arhitektūra
 
 ```
-Iestādes tīkls (IP filtrācija)
-  │
-  ▼
-Google Apps Script (Webhook drošības vārti)
-  │
-  ├── GET → Google Sheets (datu lasīšana)
-  └── POST → Google Sheets (datu rakstīšana + PIN pārbaude)
-  │
-  ▼
-GitHub Pages (statiskā frontende)
-  │    → cache.js (IndexedDB) = īslaicīga oflīne atmiņa
+GitHub Pages (HTML/CSS/JS)  →  Google Apps Script  →  Google Sheets
+         ↑                                                  ↓
+         └──────── Lokālais IndexedDB kešs ←────────────── ┘
 ```
 
-## Drošība
+- **Klienta puse**: Pārlūkprogramma ar IndexedDB kešu
+- **Serveris**: Google Apps Script (slēpta datu vārteja)
+- **Datu bāze**: Google Sheets ar 8 loģiskām lapām
 
-1. **IP barjera** — Google Apps Script pieņem pieprasījumus tikai no iestādes IP adrešiem
-2. **PIN kods** — 6-ciparu PIN no `darbinieki` lapas, skaidrs teksts
-3. **Offline režīms** — dati kešo IndexedDB (maksimums 2 stundas), pēc tam sync uz Sheets
+## Lapas
 
-## Mapju struktūra
+- `index.html` - PIN autorizācija
+- `aprupe.html` - Aprūpētāja sākumlapa (klientu kartītes + meklēšana)
+- `aprupetajs.html` - Konkrēta klienta aprūpes forma
+- `control.html` - Kontroliera panelis (statistika, vēsture, Excel eksports)
+- `admin.html` - Administratora panelis (klienti, darbinieki, iestatījumi)
 
-```
-Aprupes_sistema/
-├── frontend/
-│   └── www/
-│       ├── index.html        # Galvenā (login)
-│       ├── aprupetajs.html   # Aprūpes forma
-│       ├── admin.html        # Administrācija
-│       ├── control.html      # Kontrole
-│       ├── setup.html        # Sākotnējā iestatīšana
-│       ├── css/
-│       │   ├── login.css, common.css, aprupetajs.css, admin.css, control.css, setup.css
-│       └── js/
-│           ├── common.js     # API, autentifikācija, checkServerHealth
-│           ├── cache.js      # IndexedDB kešs, syncPending
-│           ├── sqlite.js     # saveMark, addPendingMark, markSynced
-│           ├── care_form.js  # aprūpes forma logika
-│           ├── aprupetajs.js # aprūpes skats
-│           ├── admin.js      # admin panelis
-│           ├── control.js    # kontroles panelis
-│           ├── login.js      # login forma
-│           └── setup.js      # sākotnējā iestatīšana
-├── Aprupes_sistema_template.xlsx  # Veidne Google Sheets struktūrai
-├── uzdevums.md              # Projekta uzdevumi
-└── README.md
-```
+## Datu struktūra (Google Sheets)
 
-## Sākotnējā iestatīšana
+- `darbinieki` - lietotāji, lomas, PIN
+- `klienti` - klientu pamatdati
+- `atzimes` - aktuālās vērtības (pašreizējais stāvoklis)
+- `atzimes_log` - nemaināma visu izmaiņu vēsture
+- `dienas_ierakti` - dienas pabeigšanas statuss
+- `sessions` - aktīvās sesijas
+- `uzdevomi` - papildu uzdevumi
+- `pamaciba` - lauku skaidrojumi
 
-### 1. Google Sheets
+## Konfigurācija
 
-1. Atveriet [Google Sheets](https://sheets.google.com)
-2. Augšupielādējiet `Aprupes_sistema_template.xlsx`
-3. Ielūdts `Tools → Macro → Run` vai importējiet kā CSV
+1. Atvērt `js/config.js` un iestatīt:
+   ```js
+   GAS_URL: 'https://script.google.com/macros/s/JŪSU_DEPLOYMENT/exec'
+   ```
 
-### 2. GitHub Pages
+2. Google Apps Script backend (`backend/gas_webhook.gs`) izvietot ar `Deploy as Web App`:
+   - Execute as: `Me`
+   - Who has access: `Anyone`
 
-1. Pārvietojiet `frontend/www/` failus uz repozitorijas saknes (`root`), jo GitHub Pages servē no `/`
-2. Ieslēdziet Pages: `Settings → Pages → Source: main branch → / (root)`
+3. Google Sheets izveidot ar šīm lapām un aizpildīt kolonnu galvenes atbilstoši `pamaciba` lapai.
 
-### 3. Google Apps Script
+## Lokālā izstrāde
 
-1. Atveriet [script.google.com](https://script.google.com)
-2. Izveidojiet jaunu projektu
-3. Pietvariet pie sava Google Sheet (`Resources → Cloud Platform project`)
-4. Ielūdts šu kodu (piemērs):
+```bash
+# Instalēt atkarības (XLSX bibliotēka)
+npm install
 
-```javascript
-// Google Apps Script — ielūdits kā atseviģes kods
-const ALLOWED_IPS = ['192.168.1.0/24']; // Iestādes IP
-const SHEET_ID = 'Jūsu_sheet_ID_šeit';
-
-function doGet(e) {
-  if (!checkIP(e)) return ContentService.createTextOutput(JSON.stringify({error: 'Forbidden'})).setMimeType(ContentService.MimeType.JSON).setHeader('Access-Control-Allow-Origin', '*');
-  
-  const ss = SpreadsheetApp.openById(SHEET_ID);
-  const sheet = e.parameter.sheet || 'atzimes';
-  const ws = ss.getSheetByName(sheet);
-  const data = ws.getDataRange().getValues();
-  const headers = data[0];
-  
-  const rows = data.slice(1).map(row => {
-    const obj = {};
-    headers.forEach((h, i) => obj[h] = row[i]);
-    return obj;
-  });
-  
-  return ContentService.createTextOutput(JSON.stringify({ok: true, data: rows}))
-    .setMimeType(ContentService.MimeType.JSON)
-    .setHeader('Access-Control-Allow-Origin', '*');
-}
-
-function doPost(e) {
-  if (!checkIP(e)) return ContentService.createTextOutput(JSON.stringify({error: 'Forbidden'}));
-  
-  const body = JSON.parse(e.postData.contents);
-  const ss = SpreadsheetApp.openById(SHEET_ID);
-  
-  // PIN pārbaude
-  const workers = ss.getSheetByName('darbinieki');
-  const pinData = workers.getDataRange().getValues();
-  const headers = pinData[0];
-  const pinCol = headers.indexOf('PIN kods');
-  const nameCol = headers.indexOf('Vārds');
-  
-  const authenticated = pinData.slice(1).some(row => String(row[pinCol]) === String(body.pin));
-  
-  if (!authenticated) {
-    return ContentService.createTextOutput(JSON.stringify({error: 'Invalid PIN'}));
-  }
-  
-  // Datu ierakstīšana
-  const sheetName = body.sheet || 'atzimes';
-  const ws = ss.getSheetByName(sheetName);
-  const inputHeaders = ['Klients ID', 'Darbinieks ID', 'Datums', 'Laiks', 'Kategorija', 'Lauka nosaukums', 'Vērtība', 'Papilgs info', 'Ir labots', 'Sākotnējā vērtība'];
-  const row = inputHeaders.map(h => body[h] !== undefined ? body[h] : '');
-  ws.appendRow(row);
-  
-  return ContentService.createTextOutput(JSON.stringify({ok: true, id: 'new'}))
-    .setMimeType(ContentService.MimeType.JSON)
-    .setHeader('Access-Control-Allow-Origin', '*');
-}
-
-function checkIP(e) {
-  const userIP = e.parameter.ip || (e.httpVersion ? e.ip || '' : '');
-  // Īsākah IP validācija skriptā
-  return true; // Tālāk izstrādāt ar konkrētām IP
-}
+# Palaist lokālu serveri
+npm run dev
 ```
 
-5. Publicējiet kā Web App: `Publish → Deploy as web app → Execute as: Me → Who has access: Anyone`
-6. Atverošanas URL kopējiet un ielīmējiet `frontend/www/js/common.js` `GAS_ENDPOINT` mainīgajā.
+Pēc tam atvērt `http://localhost:3000` pārlūkā.
 
-## Atzīmju kategorijas
+## Sistēmas principi
 
-| Kategorija | Lauki | Vērtība formāts |
-|-----------|-------|-----------------|
-| `temp` | `temperatura` | Skaitlis (37.5) vai "N" |
-| `higiena` | `mutes_dobuma_kopsana`, `dala_apmazgasana`, `vana_dus`, `velas_maina`, `nagu_kopsana`, `matu_kopsana`, `bardas_skushana` | X vai tukši |
-| `aktivitate` | `parvietojas_ar_palidzlekli`, `stav_ar_palidziigu`, `sedz_ar_palidziigu` | X |
-| `edinasana` | `brokastis`, `pusdienas`, `launag`, `vakariņi` | X, ½, A |
-| `sikdrumi` | `urina_daudzums` (ml), `uznemts` (ml) | Skaitlis |
-| `fiziologija` | `vedera_izeja` | N, A, S, C, K |
-| `citi_pasakomi` | `pastaigas`, `ciemini`, `autins_biksitu_skaits` | X vai skaitlis |
+- **Vienkāršība**: katra poga dara vienu skaidru darbību
+- **Lokāls pirmais**: dati tiek saglabāti ierīcē uzreiz, pēc tam sinhronizēti fonā
+- **Bez dublēšanās**: viena poga - viena darbība, viena datu vieta
+- **Latviešu valoda**: lietotājam netiek rādīti API, tokeni, tehniski termini
+- **Drošība**: PIN autentifikācija, lomas, audita žurnāls
+- **MK veidlapa**: Excel eksports saglabā oriģinālo `Aprūpes lapas.xlsx` formatējumu
 
-> Pilna detalizēta pamācība ir `Aprupes_sistema_template.xlsx` lapā "pamācība"
+## Sezonas / Periodi
+
+- **Pilns mēnesis** - izvēlas klientu un mēnesi
+- **Slimnīcas periods** - no/līdz konkrētam datumam
+- **Pakalpojuma beigas** - līdz pēdējai aprūpes dienai
+
+## Testēšana
+
+```bash
+# Pārbaudīt sintakse
+node -c js/*.js
+```
+
+Pārbaudāmie scenāriji:
+- 1 klients un 100+ klienti
+- Tukšs dzimšanas datums
+- Atkārtots klikšķis
+- Vērtības labojums
+- Darbs bez interneta
+- Interneta atjaunošanās
+- Excel eksports
+
+## Licenzes un autortiesības
+
+Šis ir bezmaksas rīks sociālajai aprūpei. Izmantojiet bez maksas.

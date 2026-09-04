@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="lv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#2c3e50">
+  <title>Aprūpes sistēma – Klienti</title>
+  <link rel="stylesheet" href="css/aprupe.css">
+  <link rel="icon" href="logo/logoDS.png" type="image/png">
+</head>
+<body>
+  <header class="header">
+    <div class="header-left">
+      <button id="logoutBtn" class="btn-icon" title="Iziet">
+        <span>←</span>
+      </button>
+    </div>
+    <div class="header-center">
+      <img src="logo/logoDS.png" alt="Logo" class="header-logo">
+      <h1>Aprūpes sistēma</h1>
+    </div>
+    <div class="header-right">
+      <span id="syncStatus" class="sync-badge">Saglabāts</span>
+    </div>
+  </header>
+
+  <main class="main">
+    <div class="search-container">
+      <input type="text" id="searchBox" placeholder="Meklēt klientu pēc vārda vai uzvārda..." autocomplete="off" maxlength="100">
+      <span id="searchCount" class="search-count"></span>
+    </div>
+
+    <div id="clientGrid" class="client-grid">
+      <div class="loading">Ielādēju klientus...</div>
+    </div>
+  </main>
+
+  <script src="js/config.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/sync.js"></script>
+  <script src="js/aprupe.js"></script>
+</body>
+</html>
