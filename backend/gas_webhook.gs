@@ -134,9 +134,19 @@ function setCellValue(sheet, rowNum, field, value) {
 
 function doGet(e) {
   try {
-    const action = e && e.parameter && e.parameter.action;
-    if (action === 'load') return handleLoad();
-    return createResponse(400, { error: 'Nezināma darbība: ' + action });
+    const params = (e && e.parameter) || {};
+    if (params.action === 'load') return handleLoad();
+    if (params.data) {
+      let data;
+      try { data = JSON.parse(params.data); } catch (pe) {
+        return createResponse(400, { error: 'Nederīgs JSON' });
+      }
+      return routeAction(data);
+    }
+    if (params.action) {
+      return routeAction({ action: params.action, data: params });
+    }
+    return createResponse(400, { error: 'Nezināma darbība' });
   } catch (err) {
     return createResponse(500, { error: 'Kļūda: ' + err.toString() });
   }

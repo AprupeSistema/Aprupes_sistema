@@ -128,27 +128,36 @@ class SyncManager {
   }
 
   async sendToServer(item) {
-    const payload = {
+    const payload = JSON.stringify({
       action: item.action,
       data: item.data,
       clientId: item.id
-    };
-    const url = this.config.GAS_URL + '?data=' + encodeURIComponent(JSON.stringify(payload));
+    });
+    const url = this.config.GAS_URL;
+    const ts = Date.now();
     try {
-      await fetch(url, { method: 'GET', mode: 'no-cors' });
+      await fetch(url + '?t=' + ts, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: payload
+      });
+      console.log('[sync] POST sent', item.action, item.id);
       return true;
     } catch (err) {
+      console.error('[sync] POST failed', err);
       try {
-        await fetch(this.config.GAS_URL, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
+        await fetch(url + '?data=' + encodeURIComponent(payload) + '&t=' + ts, {
+          method: 'GET',
+          mode: 'no-cors'
         });
         return true;
       } catch (err2) {
+        console.error('[sync] GET fallback failed', err2);
         return false;
       }
+    }
+  }
     }
   }
 
