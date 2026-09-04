@@ -361,7 +361,7 @@ class CareFormController {
       ada: '🧴 Ādas kopšana',
       pastaiga: '🌳 Pastaiga',
       ciemini: '👥 Ciemiņi',
-      diapers: '🧻 Higiēnas maiņa'
+      diapers: '🧻 Autiņbikšu maiņa'
     };
     title.textContent = titles[cat] || cat;
     let html = '';
@@ -621,7 +621,7 @@ class CareFormController {
       </div>
       <div class="section-row" style="border-bottom: none;">
         <div style="font-size:13px;color:var(--text-light);text-align:center;padding:8px;">
-          Nospied pogu pēc katras higiēnas maiņas.<br>
+          Nospied pogu pēc katras Autiņbikšu maiņas.<br>
           Katra maiņa tiek reģistrēta vēsturē ar laiku un aprūpētāja vārdu.
         </div>
       </div>
