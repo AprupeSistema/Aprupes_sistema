@@ -239,10 +239,22 @@ class CareFormController {
     }
 
     const autins = this.getMark(shift, 'citsi_pasakomi', 'autins_biksitu_skaits');
+    const diapersEl = document.getElementById('status-diapers');
+    if (diapersEl) {
+      if (autins && autins.value) {
+        diapersEl.textContent = '✓ ' + autins.value + ' maiņas';
+        diapersEl.className = 'cat-status completed';
+      } else {
+        diapersEl.textContent = 'Nav maiņu';
+        diapersEl.className = 'cat-status';
+      }
+    }
+
     const citiEl = document.getElementById('status-citi');
     if (citiEl) {
-      if (autins && autins.value) {
-        citiEl.textContent = '👶 ' + autins.value + ' maiņas';
+      const hasCiti = (markAda && markAda.value === 'X') || (markPastaiga && markPastaiga.value === 'X') || (markCiemini && markCiemini.value);
+      if (hasCiti) {
+        citiEl.textContent = '✓ Ierakstīts';
         citiEl.className = 'cat-status completed';
       } else {
         citiEl.textContent = 'Nav ierakstu';
@@ -296,7 +308,8 @@ class CareFormController {
       edinasana: '🍽️ Ēdīšana',
       sikdrumi: '💧 Šķidrumi',
       fiziologija: '🚽 Vēdera izeja',
-      citi: '📋 Citi pasākumi'
+      citi: '📋 Citi pasākumi',
+      diapers: '👶 Autiņbiksīšu maiņa'
     };
     title.textContent = titles[cat] || cat;
     let html = '';
@@ -307,6 +320,7 @@ class CareFormController {
     else if (cat === 'sikdrumi') html = this.renderSikdrumiSection(shift);
     else if (cat === 'fiziologija') html = this.renderFiziologijaSection(shift);
     else if (cat === 'citi') html = this.renderCitiPasakumiSection(shift);
+    else if (cat === 'diapers') html = this.renderDiapersSection(shift);
     body.innerHTML = html;
     modal.style.display = 'flex';
     this.bindFormEvents();
@@ -484,7 +498,6 @@ class CareFormController {
     const markAda = this.getMark(shift, 'citsi_pasakomi', 'adas_kopsana');
     const markPastaiga = this.getMark(shift, 'citsi_pasakomi', 'pastaigas');
     const markCiemini = this.getMark(shift, 'citsi_pasakomi', 'ciemini');
-    const markAutins = this.getMark(shift, 'citsi_pasakomi', 'autins_biksitu_skaits');
 
     const cieminiVal = markCiemini ? markCiemini.value : '';
     const body = `
@@ -520,18 +533,32 @@ class CareFormController {
           <button class="opt-btn refused ${cieminiVal === 'Nē' ? 'active' : ''}" data-cat="citsi_pasakomi" data-field="ciemini" data-value="Nē" data-shift="${shift}">Nē</button>
         </div>
       </div>
+    `;
+    return this.sectionCard('section-citi', '📋', 'Citi pasākumi', null, body);
+  }
+
+  renderDiapersSection(shift) {
+    const markAutins = this.getMark(shift, 'citsi_pasakomi', 'autins_biksitu_skaits');
+    const count = markAutins && markAutins.value ? markAutins.value : '0';
+    const body = `
       <div class="section-row">
         <div class="section-row-label">
-          <span>Autiņbiksīšu maiņa</span>
-          <span class="current-value" id="diaperCount">${markAutins && markAutins.value ? markAutins.value + ' šodien' : ''}</span>
+          <span>Maiņu skaits šodien</span>
+          <span class="current-value" id="diaperCountDisplay">${count}</span>
         </div>
         <button class="opt-btn diaper-btn" data-cat="citsi_pasakomi" data-field="autins_biksitu_skaits" data-shift="${shift}">
           <span class="diaper-icon">👶</span>
           <span>+1 maiņa</span>
         </button>
       </div>
+      <div class="section-row" style="border-bottom: none;">
+        <div style="font-size:13px;color:var(--text-light);text-align:center;padding:8px;">
+          Nospied pogu pēc katras autiņbiksīšu maiņas.<br>
+          Katra maiņa tiek reģistrēta vēsturē ar laiku un aprūpētāja vārdu.
+        </div>
+      </div>
     `;
-    return this.sectionCard('section-citi', '📋', 'Citi pasākumi', null, body);
+    return this.sectionCard('section-citi', '👶', 'Autiņbiksīšu maiņa', null, body);
   }
 
   bindFormEvents() {
@@ -628,7 +655,7 @@ class CareFormController {
     });
 
     this.toast('✓ Maiņa pievienota (' + newCount + ')');
-    this.openCategoryModal('citi');
+    this.openCategoryModal('diapers');
     await this.loadHistory();
     this.renderHistory();
   }

@@ -238,6 +238,7 @@ body {
 .category-card.cat-sikdrumi::before { background: linear-gradient(90deg, #27ae60, #55efc4); }
 .category-card.cat-fiziologija::before { background: linear-gradient(90deg, #16a085, #1abc9c); }
 .category-card.cat-citi::before { background: linear-gradient(90deg, #95a5a6, #bdc3c7); }
+.category-card.cat-diapers::before { background: linear-gradient(90deg, #ee5a52, #ff7675); }
 
 .category-card:hover {
   transform: translateY(-3px);
