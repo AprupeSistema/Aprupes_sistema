@@ -199,6 +199,9 @@ class SyncManager {
         }
         for (const sheet of sheets) {
           const rows = (data && data[sheet]) || [];
+          if (sheet === 'atzimes' || sheet === 'atzimes_log' || sheet === 'dienas_ierakti') {
+            console.log('[sync]', sheet, 'rows sample:', rows.slice(0, 2));
+          }
           await this.db.clear(sheet);
           for (const row of rows) {
             const normalized = normalizeRow(row);
