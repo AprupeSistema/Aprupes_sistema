@@ -176,6 +176,13 @@ class SyncManager {
           console.error('[sync] JSON parse failed:', pe);
           throw new Error('Nederīgs JSON: ' + text.substring(0, 100));
         }
+        if (!data || typeof data !== 'object') {
+          throw new Error('Tukša atbilde');
+        }
+        const hasAny = sheets.some(s => Array.isArray(data[s]));
+        if (!hasAny) {
+          throw new Error('Atbilde nesatur nevienu gaidīto lapu');
+        }
         for (const sheet of sheets) {
           const rows = (data && data[sheet]) || [];
           await this.db.clear(sheet);
@@ -194,12 +201,17 @@ class SyncManager {
         console.warn('[sync] non-ok', response.status);
       }
     } catch (err) {
-      console.error('[sync] load failed:', err);
+      console.error('[sync] load failed, keeping local data:', err);
     }
 
     result.offline = true;
     for (const sheet of sheets) {
-      result.count[sheet] = 0;
+      try {
+        const localRows = await this.db.getAll(sheet);
+        result.count[sheet] = localRows.length;
+      } catch (e) {
+        result.count[sheet] = 0;
+      }
     }
     return result;
   }

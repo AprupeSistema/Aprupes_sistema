@@ -31,10 +31,14 @@ class AprupeController {
     });
 
     this.setupSearch();
-    await this.sync.loadInitialData();
     await this.loadClients();
-    await this.loadTodayMarks();
+    this.filteredClients = [...this.clients];
     this.renderCards();
+    this.sync.loadInitialData().then(async () => {
+      await this.loadClients();
+      this.filteredClients = [...this.clients];
+      this.renderCards();
+    });
   }
 
   setupSearch() {
@@ -44,6 +48,7 @@ class AprupeController {
     searchBox.addEventListener('input', (e) => {
       const term = e.target.value.trim().toLowerCase();
       this.filterClients(term);
+      this.renderCards();
       if (term) {
         searchCount.textContent = this.filteredClients.length + ' klienti atrasti';
       } else {
@@ -96,7 +101,8 @@ class AprupeController {
     this.filteredClients = this.clients.filter(client => {
       const vards = (client.vards || client.Vārds || '').toLowerCase();
       const uzvards = (client.uzvards || client.Uzvārds || '').toLowerCase();
-      return vards.includes(lowerTerm) || uzvards.includes(lowerTerm);
+      const id = String(client.id || client.ID || '');
+      return vards.includes(lowerTerm) || uzvards.includes(lowerTerm) || id.toLowerCase().includes(lowerTerm);
     });
   }
 
