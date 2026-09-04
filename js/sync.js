@@ -158,8 +158,6 @@ class SyncManager {
       }
     }
   }
-    }
-  }
 
   async loadInitialData() {
     const result = { offline: false, count: {} };
