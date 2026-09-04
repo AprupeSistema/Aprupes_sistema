@@ -250,15 +250,39 @@ class CareFormController {
       }
     }
 
-    const citiEl = document.getElementById('status-citi');
-    if (citiEl) {
-      const hasCiti = (markAda && markAda.value === 'X') || (markPastaiga && markPastaiga.value === 'X') || (markCiemini && markCiemini.value);
-      if (hasCiti) {
-        citiEl.textContent = '✓ Ierakstīts';
-        citiEl.className = 'cat-status completed';
+    const markAda = this.getMark(shift, 'citsi_pasakomi', 'adas_kopsana');
+    const adaEl = document.getElementById('status-ada');
+    if (adaEl) {
+      if (markAda && markAda.value === 'X') {
+        adaEl.textContent = '✓ Veikta';
+        adaEl.className = 'cat-status completed';
       } else {
-        citiEl.textContent = 'Nav ierakstu';
-        citiEl.className = 'cat-status';
+        adaEl.textContent = 'Nav veikta';
+        adaEl.className = 'cat-status';
+      }
+    }
+
+    const markPastaiga = this.getMark(shift, 'citsi_pasakomi', 'pastaigas');
+    const pastaigaEl = document.getElementById('status-pastaiga');
+    if (pastaigaEl) {
+      if (markPastaiga && markPastaiga.value === 'X') {
+        pastaigaEl.textContent = '✓ Bijusi';
+        pastaigaEl.className = 'cat-status completed';
+      } else {
+        pastaigaEl.textContent = 'Nav bijis';
+        pastaigaEl.className = 'cat-status';
+      }
+    }
+
+    const markCiemini = this.getMark(shift, 'citsi_pasakomi', 'ciemini');
+    const cieminiEl = document.getElementById('status-ciemini');
+    if (cieminiEl) {
+      if (markCiemini && markCiemini.value) {
+        cieminiEl.textContent = '✓ ' + markCiemini.value;
+        cieminiEl.className = 'cat-status completed';
+      } else {
+        cieminiEl.textContent = 'Nav ieraksta';
+        cieminiEl.className = 'cat-status';
       }
     }
   }
@@ -308,7 +332,9 @@ class CareFormController {
       edinasana: '🍽️ Ēdīšana',
       sikdrumi: '💧 Šķidrumi',
       fiziologija: '🚽 Vēdera izeja',
-      citi: '📋 Citi pasākumi',
+      ada: '🧴 Ādas kopšana',
+      pastaiga: '🌳 Pastaiga',
+      ciemini: '👥 Ciemiņi',
       diapers: '👶 Autiņbiksīšu maiņa'
     };
     title.textContent = titles[cat] || cat;
@@ -319,7 +345,9 @@ class CareFormController {
     else if (cat === 'edinasana') html = this.renderEdinasanaSection(shift);
     else if (cat === 'sikdrumi') html = this.renderSikdrumiSection(shift);
     else if (cat === 'fiziologija') html = this.renderFiziologijaSection(shift);
-    else if (cat === 'citi') html = this.renderCitiPasakumiSection(shift);
+    else if (cat === 'ada') html = this.renderAdaSection(shift);
+    else if (cat === 'pastaiga') html = this.renderPastaigaSection(shift);
+    else if (cat === 'ciemini') html = this.renderCieminiSection(shift);
     else if (cat === 'diapers') html = this.renderDiapersSection(shift);
     body.innerHTML = html;
     modal.style.display = 'flex';
@@ -494,47 +522,61 @@ class CareFormController {
     return this.sectionCard('section-fiziologija', '🚽', 'Vēdera izeja', null, body);
   }
 
-  renderCitiPasakumiSection(shift) {
+  renderAdaSection(shift) {
     const markAda = this.getMark(shift, 'citsi_pasakomi', 'adas_kopsana');
-    const markPastaiga = this.getMark(shift, 'citsi_pasakomi', 'pastaigas');
-    const markCiemini = this.getMark(shift, 'citsi_pasakomi', 'ciemini');
-
-    const cieminiVal = markCiemini ? markCiemini.value : '';
+    const hasValue = markAda && markAda.value === 'X';
     const body = `
-      <div class="section-row">
+      <div class="section-row" style="border-bottom: none;">
         <div class="section-row-label">
-          <span>Ādas kopšanas līdzekļi</span>
-          <span class="current-value ${markAda && markAda.value === 'X' ? '' : 'empty'}">${markAda && markAda.value === 'X' ? '✓' : ''}</span>
+          <span>Ādas kopšanas līdzekļi uzklāti</span>
+          <span class="current-value ${hasValue ? '' : 'empty'}">${hasValue ? '✓ Veikta' : ''}</span>
         </div>
         <div class="opt-group">
-          <button class="opt-btn ${markAda && markAda.value === 'X' ? 'active' : ''}" data-cat="citsi_pasakomi" data-field="adas_kopsana" data-value="X" data-shift="${shift}">
-            ${markAda && markAda.value === 'X' ? '✓' : 'X'}
+          <button class="opt-btn ${hasValue ? 'active' : ''}" data-cat="citsi_pasakomi" data-field="adas_kopsana" data-value="X" data-shift="${shift}">
+            ${hasValue ? '✓ Jā, veikta' : 'X Nospiest, kad veikta'}
           </button>
-        </div>
-      </div>
-      <div class="section-row">
-        <div class="section-row-label">
-          <span>Pastaigas svaigā gaisā</span>
-          <span class="current-value ${markPastaiga && markPastaiga.value === 'X' ? '' : 'empty'}">${markPastaiga && markPastaiga.value === 'X' ? '✓' : ''}</span>
-        </div>
-        <div class="opt-group">
-          <button class="opt-btn ${markPastaiga && markPastaiga.value === 'X' ? 'active' : ''}" data-cat="citsi_pasakomi" data-field="pastaigas" data-value="X" data-shift="${shift}">
-            ${markPastaiga && markPastaiga.value === 'X' ? '✓' : 'X'}
-          </button>
-        </div>
-      </div>
-      <div class="section-row">
-        <div class="section-row-label">
-          <span>Ciemiņi</span>
-          <span class="current-value ${cieminiVal ? '' : 'empty'}">${cieminiVal || ''}</span>
-        </div>
-        <div class="opt-group">
-          <button class="opt-btn ${cieminiVal === 'X' ? 'active' : ''}" data-cat="citsi_pasakomi" data-field="ciemini" data-value="X" data-shift="${shift}">Jā</button>
-          <button class="opt-btn refused ${cieminiVal === 'Nē' ? 'active' : ''}" data-cat="citsi_pasakomi" data-field="ciemini" data-value="Nē" data-shift="${shift}">Nē</button>
         </div>
       </div>
     `;
-    return this.sectionCard('section-citi', '📋', 'Citi pasākumi', null, body);
+    return this.sectionCard('section-citi', '🧴', 'Ādas kopšana', null, body);
+  }
+
+  renderPastaigaSection(shift) {
+    const markPastaiga = this.getMark(shift, 'citsi_pasakomi', 'pastaigas');
+    const hasValue = markPastaiga && markPastaiga.value === 'X';
+    const body = `
+      <div class="section-row" style="border-bottom: none;">
+        <div class="section-row-label">
+          <span>Pastaiga svaigā gaisā</span>
+          <span class="current-value ${hasValue ? '' : 'empty'}">${hasValue ? '✓ Bijusi' : ''}</span>
+        </div>
+        <div class="opt-group">
+          <button class="opt-btn ${hasValue ? 'active' : ''}" data-cat="citsi_pasakomi" data-field="pastaigas" data-value="X" data-shift="${shift}">
+            ${hasValue ? '✓ Jā, bijusi' : 'X Nospiest, kad bijis'}
+          </button>
+        </div>
+      </div>
+    `;
+    return this.sectionCard('section-citi', '🌳', 'Pastaiga', null, body);
+  }
+
+  renderCieminiSection(shift) {
+    const markCiemini = this.getMark(shift, 'citsi_pasakomi', 'ciemini');
+    const current = markCiemini ? markCiemini.value : '';
+    const valueLabel = current === 'X' ? '✓ Jā' : current === 'Nē' ? '✓ Nē' : '';
+    const body = `
+      <div class="section-row" style="border-bottom: none;">
+        <div class="section-row-label">
+          <span>Vai bija ciemiņi šodien?</span>
+          <span class="current-value ${valueLabel ? '' : 'empty'}">${valueLabel}</span>
+        </div>
+        <div class="opt-group">
+          <button class="opt-btn ${current === 'X' ? 'active' : ''}" data-cat="citsi_pasakomi" data-field="ciemini" data-value="X" data-shift="${shift}">Jā, bija</button>
+          <button class="opt-btn refused ${current === 'Nē' ? 'active' : ''}" data-cat="citsi_pasakomi" data-field="ciemini" data-value="Nē" data-shift="${shift}">Nē, nebija</button>
+        </div>
+      </div>
+    `;
+    return this.sectionCard('section-citi', '👥', 'Ciemiņi', null, body);
   }
 
   renderDiapersSection(shift) {

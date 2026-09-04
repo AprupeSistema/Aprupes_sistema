@@ -237,7 +237,9 @@ body {
 .category-card.cat-edinasana::before { background: linear-gradient(90deg, #f39c12, #fdcb6e); }
 .category-card.cat-sikdrumi::before { background: linear-gradient(90deg, #27ae60, #55efc4); }
 .category-card.cat-fiziologija::before { background: linear-gradient(90deg, #16a085, #1abc9c); }
-.category-card.cat-citi::before { background: linear-gradient(90deg, #95a5a6, #bdc3c7); }
+.category-card.cat-ada::before { background: linear-gradient(90deg, #fd79a8, #fab1a0); }
+.category-card.cat-pastaiga::before { background: linear-gradient(90deg, #00b894, #55efc4); }
+.category-card.cat-ciemini::before { background: linear-gradient(90deg, #6c5ce7, #a29bfe); }
 .category-card.cat-diapers::before { background: linear-gradient(90deg, #ee5a52, #ff7675); }
 
 .category-card:hover {
@@ -705,14 +707,17 @@ body {
     gap: 10px;
   }
   .category-card {
-    padding: 18px 12px;
-    min-height: 115px;
+    padding: 16px 10px;
+    min-height: 105px;
   }
   .cat-emoji {
-    font-size: 38px;
+    font-size: 36px;
   }
   .cat-title {
-    font-size: 14px;
+    font-size: 13px;
+  }
+  .cat-status {
+    font-size: 11px;
   }
   .opt-btn {
     padding: 16px 14px;
