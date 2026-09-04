@@ -96,18 +96,27 @@ class LoginController {
     const statusMsg = document.getElementById('statusMessage');
     statusMsg.textContent = 'Ielādēju datus...';
 
-    const result = await this.sync.loadInitialData();
-
-    if (result.offline && !result.hasLocal) {
-      statusMsg.textContent = 'Nav interneta, bet nav lokālu datu.';
+    let result;
+    try {
+      result = await this.sync.loadInitialData();
+    } catch (e) {
+      console.error('[login] loadInitialData threw:', e);
+      statusMsg.textContent = 'Kļūda: ' + (e.message || e);
       return;
     }
 
     if (result.offline) {
-      statusMsg.textContent = 'Darbosimies offline ar lokāliem datiem';
+      const hasLocal = await this.sync.hasLocalData();
+      if (!hasLocal) {
+        statusMsg.textContent = 'Nav interneta un nav lokālu datu. Atveriet konsoli (F12).';
+        console.warn('[login] offline, no local data');
+        return;
+      }
+      statusMsg.textContent = 'Bezsaistē ar lokāliem datiem';
       document.body.classList.remove('online');
     } else {
-      statusMsg.textContent = 'Gatavs ' + (result.count ? result.count.klienti + ' klienti, ' + result.count.darbinieki + ' darbinieki' : '');
+      const total = Object.values(result.count || {}).reduce((a, b) => a + b, 0);
+      statusMsg.textContent = 'Gatavs (' + total + ' ieraksti)';
       document.body.classList.add('online');
     }
   }

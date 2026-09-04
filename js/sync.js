@@ -158,17 +158,24 @@ class SyncManager {
 
     try {
       const url = this.config.GAS_URL + '?action=load';
-      const response = await fetch(url, { method: 'GET' });
+      console.log('[sync] GET', url);
+      const response = await fetch(url, { method: 'GET', redirect: 'follow' });
+      console.log('[sync] status', response.status, response.statusText);
       if (response.ok) {
-        const data = await response.json();
+        const text = await response.text();
+        console.log('[sync] response first 200:', text.substring(0, 200));
+        let data;
+        try { data = JSON.parse(text); } catch (pe) {
+          console.error('[sync] JSON parse failed:', pe);
+          throw new Error('Nederīgs JSON: ' + text.substring(0, 100));
+        }
         for (const sheet of sheets) {
-          const rows = data[sheet] || [];
+          const rows = (data && data[sheet]) || [];
           await this.db.clear(sheet);
           for (const row of rows) {
             const normalized = normalizeRow(row);
             const id = normalized.id || (sheet + '_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5));
             normalized.id = id;
-            if (sheet === 'darbinieki' && normalized.loma === 'administrators') normalized.loma = 'administrators';
             await this.db.add(sheet, normalized);
           }
           result.count[sheet] = rows.length;
@@ -176,9 +183,11 @@ class SyncManager {
         await this.db.setMeta('lastSync', Date.now());
         await this.db.setMeta('initData', true);
         return result;
+      } else {
+        console.warn('[sync] non-ok', response.status);
       }
     } catch (err) {
-      console.warn('GAS load failed:', err);
+      console.error('[sync] load failed:', err);
     }
 
     result.offline = true;
