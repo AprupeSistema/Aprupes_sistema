@@ -9,28 +9,66 @@ const FIELD_ALIASES = {
   'saskarsmes_īpatnības': 'saskarsmes',
   'parole': 'parole',
   'id': 'id',
-  'klients_id': 'klienti_id',
-  'darbinieks_id': 'darbinieki_id',
-  'datums': 'datums',
-  'periods': 'periods',
-  'kategorija': 'kategorija',
-  'lauka_nosaukums': 'lauka_nosaukums',
-  'vērtība': 'vertiba',
-  'pēdējā_vērtība': 'pedeja_vertiba',
-  'pēdējais_laiks': 'pedeja_laiks',
-  'darbinieks_pēdējais': 'darbinieks_pedejais',
-  'atzīmes_id': 'atzimes_id',
-  'laiks': 'laiks',
-  'papildus_info': 'papilgs_info',
-  'izveidots': 'izveidots',
+  'klients_id': 'clientId',
+  'darbinieks_id': 'employeeId',
+  'datums': 'date',
+  'periods': 'shift',
+  'kategorija': 'category',
+  'lauka_nosaukums': 'field',
+  'vērtība': 'value',
+  'pēdējā_vērtība': 'lastValue',
+  'pēdējais_laiks': 'lastModified',
+  'darbinieks_pēdējais': 'lastBy',
+  'atzīmes_id': 'markId',
+  'laiks': 'time',
+  'papildus_info': 'reason',
+  'izveidots': 'created',
   'teksts': 'teksts',
   'termiņš': 'termins',
   'prioritāte': 'prioritate',
-  'statuss': 'statuss',
-  'pabeigts': 'pabeigts',
-  'labotājs_id': 'labotajs_id',
-  '24h': 'h24'
+  'statuss': 'status',
+  'pabeigts': 'completed',
+  'labotājs_id': 'editorId',
+  '24h': 'h24',
+  'skaits': 'count'
 };
+
+function normalizeDate(v) {
+  if (!v) return '';
+  if (v instanceof Date) {
+    if (isNaN(v.getTime())) return '';
+    const y = v.getFullYear();
+    const m = String(v.getMonth() + 1).padStart(2, '0');
+    const d = String(v.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + d;
+  }
+  if (typeof v === 'string') {
+    const s = v.trim();
+    if (!s) return '';
+    if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
+      return s.substring(0, 10);
+    }
+    if (/^\d{4}-\d{2}-\d{2}T/.test(s)) {
+      return s.substring(0, 10);
+    }
+    if (/^\d{2}\.\d{2}\.\d{4}$/.test(s)) {
+      const parts = s.split('.');
+      return parts[2] + '-' + parts[1] + '-' + parts[0];
+    }
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) {
+      const parts = s.split('/');
+      return parts[2] + '-' + parts[0] + '-' + parts[1];
+    }
+    const d = new Date(s);
+    if (!isNaN(d.getTime())) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return y + '-' + m + '-' + dd;
+    }
+  }
+  return v;
+}
 
 function normalizeRow(row) {
   const out = {};
@@ -44,18 +82,8 @@ function normalizeRow(row) {
     if (target === 'aktivs' && typeof v === 'string') {
       v = v === 'TRUE' || v === 'true' || v === '1';
     }
-    if (target === 'datums' && v instanceof Date) {
-      v = v.toISOString().split('T')[0];
-    } else if (target === 'datums' && typeof v === 'string' && v.includes('/')) {
-      const parts = v.split('/');
-      if (parts.length === 3) {
-        v = parts[2] + '-' + parts[0].padStart(2, '0') + '-' + parts[1].padStart(2, '0');
-      }
-    } else if (target === 'datums' && typeof v === 'string' && v.includes('.')) {
-      const parts = v.split('.');
-      if (parts.length === 3) {
-        v = parts[2] + '-' + parts[1].padStart(2, '0') + '-' + parts[0].padStart(2, '0');
-      }
+    if (target === 'date' || target === 'datums' || target === 'created' || target === 'lastModified' || target === 'izveidots') {
+      v = normalizeDate(v);
     }
     out[target] = v;
   }
