@@ -1,40 +1,144 @@
-function getStore() {
-  const props = PropertiesService.getScriptProperties();
-  let data = props.getProperty('data');
-  if (!data) {
-    data = {
-      darbinieki: [
-        { id: '1', vards: 'Dāvis', uzvards: 'Strazds', loma: 'administrators', pin: '1234', aktivs: true, parole: '' }
-      ],
-      klienti: [],
-      atzimes: [],
-      atzimes_log: [],
-      dienas_ierakti: [],
-      uzdevomi: []
-    };
-    props.setProperty('data', JSON.stringify(data));
-  } else {
-    data = JSON.parse(data);
-  }
-  return data;
+const SHEET_ID = '1GjwMhuMzRzYOZ3o3nEo5LvKOCfTxGlgepS56n4wECbU';
+
+function getSpreadsheet() {
+  return SpreadsheetApp.openById(SHEET_ID);
 }
 
-function setStore(data) {
-  PropertiesService.getScriptProperties().setProperty('data', JSON.stringify(data));
+function getSheet(sheetName) {
+  return getSpreadsheet().getSheetByName(sheetName);
+}
+
+function getSheetData(sheet) {
+  if (!sheet) return [];
+  const lastRow = sheet.getLastRow();
+  const lastCol = sheet.getLastColumn();
+  if (lastRow === 0 || lastCol === 0) return [];
+  const range = sheet.getRange(1, 1, lastRow, lastCol);
+  const values = range.getValues();
+  if (values.length === 0) return [];
+  const headers = values[0];
+  const rows = [];
+  for (let i = 1; i < values.length; i++) {
+    const row = {};
+    let hasData = false;
+    for (let j = 0; j < headers.length; j++) {
+      if (values[i][j] !== '' && values[i][j] !== null && values[i][j] !== undefined) {
+        hasData = true;
+      }
+      row[headers[j].toString().toLowerCase().replace(/ /g, '_')] = values[i][j];
+    }
+    if (hasData) rows.push(row);
+  }
+  return rows;
+}
+
+function appendRow(sheet, data) {
+  if (!sheet) return;
+  const lastCol = sheet.getLastColumn();
+  if (lastCol === 0) return;
+  const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  const row = new Array(headers.length).fill('');
+  const aliasMap = buildAliasMap(headers);
+  headers.forEach((h, i) => {
+    const key = aliasMap[i];
+    for (const k of Object.keys(data)) {
+      if (k === key || k === normalizeKey(h)) {
+        let v = data[k];
+        if (typeof v === 'boolean') v = v ? 'TRUE' : 'FALSE';
+        if (v === null || v === undefined) v = '';
+        row[i] = v;
+        break;
+      }
+    }
+  });
+  sheet.appendRow(row);
+}
+
+function buildAliasMap(headers) {
+  const aliases = {
+    'vārds': 'vards',
+    'uzvārds': 'uzvards',
+    'loma': 'loma',
+    'pin_kods': 'pin',
+    'aktīvs': 'aktivs',
+    'dzimšanas_datums': 'dzimis',
+    'diēta': 'dieta',
+    'saskarsmes_īpatnības': 'saskarsmes',
+    'klients_id': 'clientId',
+    'darbinieks_id': 'employeeId',
+    'atzīmes_id': 'markId',
+    'periods': 'shift',
+    'kategorija': 'category',
+    'lauka_nosaukums': 'field',
+    'vērtība': 'value',
+    'pēdējā_vērtība': 'lastValue',
+    'pēdējais_laiks': 'lastModified',
+    'darbinieks_pēdējais': 'lastBy',
+    'papildus_info': 'reason',
+    'izveidots': 'created',
+    'termiņš': 'termins',
+    'prioritāte': 'prioritate',
+    'labotājs_id': 'editorId'
+  };
+  const map = {};
+  headers.forEach((h, i) => {
+    const k = normalizeKey(h);
+    map[i] = aliases[k] || k;
+  });
+  return map;
+}
+
+function normalizeKey(h) {
+  return h.toString().toLowerCase().replace(/ /g, '_');
+}
+
+function findRow(sheet, conditions) {
+  if (!sheet) return null;
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return null;
+  const range = sheet.getRange(1, 1, lastRow, sheet.getLastColumn());
+  const values = range.getValues();
+  const headers = values[0];
+  const colMap = {};
+  headers.forEach((h, i) => { colMap[h.toString().toLowerCase().replace(/ /g, '_')] = i; });
+  for (let i = 1; i < values.length; i++) {
+    let match = true;
+    for (const [field, value] of conditions) {
+      const colIdx = colMap[field];
+      if (colIdx === undefined || String(values[i][colIdx]) !== String(value)) {
+        match = false;
+        break;
+      }
+    }
+    if (match) return { row: i + 1, data: values[i], headers: headers };
+  }
+  return null;
+}
+
+function setCellValue(sheet, rowNum, field, value) {
+  if (!sheet) return;
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const aliasMap = buildAliasMap(headers);
+  let colIdx = -1;
+  headers.forEach((h, i) => {
+    const k = aliasMap[i];
+    if (k === field || normalizeKey(h) === field) colIdx = i;
+  });
+  if (colIdx >= 0) {
+    let v = value;
+    if (typeof v === 'boolean') v = v ? 'TRUE' : 'FALSE';
+    if (v === null || v === undefined) v = '';
+    sheet.getRange(rowNum, colIdx + 1).setValue(v);
+  }
 }
 
 function doGet(e) {
   try {
     const action = e && e.parameter && e.parameter.action;
-    if (action === 'load') {
-      return createResponse(200, getStore());
-    }
-    if (action === 'getLog') {
-      return createResponse(200, { log: getStore().atzimes_log });
-    }
+    if (action === 'load') return handleLoad();
     return createResponse(400, { error: 'Nezināma darbība: ' + action });
   } catch (err) {
-    return createResponse(500, { error: err.toString() });
+    return createResponse(500, { error: 'Kļūda: ' + err.toString() });
   }
 }
 
@@ -48,108 +152,151 @@ function doPost(e) {
     } else {
       return createResponse(400, { error: 'Nav datu' });
     }
-
-    const action = data.action;
-    const store = getStore();
-
-    if (action === 'createClient') {
-      const id = 'c_' + Date.now();
-      const c = data.data;
-      store.klienti.push({
-        id: id,
-        vards: c.vards,
-        uzvards: c.uzvards,
-        dzimis: c.dzimis || '',
-        dieta: c.dieta || '',
-        saskarsmes: c.saskarsmes || '',
-        aktivs: true
-      });
-      setStore(store);
-      return createResponse(200, { success: true, id: id, count: store.klienti.length });
-    }
-
-    if (action === 'createEmployee') {
-      const id = 'e_' + Date.now();
-      const e = data.data;
-      store.darbinieki.push({
-        id: id,
-        vards: e.vards,
-        uzvards: e.uzvards,
-        loma: e.loma,
-        pin: String(e.pin),
-        aktivs: true,
-        parole: e.parole || ''
-      });
-      setStore(store);
-      return createResponse(200, { success: true, id: id });
-    }
-
-    if (action === 'updateClient') {
-      const idx = store.klienti.findIndex(c => c.id === data.data.id);
-      if (idx >= 0) {
-        Object.assign(store.klienti[idx], data.data);
-        setStore(store);
-        return createResponse(200, { success: true });
-      }
-      return createResponse(404, { error: 'Nav atrasts' });
-    }
-
-    if (action === 'updateEmployee') {
-      const idx = store.darbinieki.findIndex(e => e.id === data.data.id);
-      if (idx >= 0) {
-        Object.assign(store.darbinieki[idx], data.data);
-        setStore(store);
-        return createResponse(200, { success: true });
-      }
-      return createResponse(404, { error: 'Nav atrasts' });
-    }
-
-    if (action === 'mark') {
-      const id = 'm_' + Date.now();
-      const m = data.data;
-      const today = m.date || new Date().toISOString().split('T')[0];
-      const nowStr = new Date().toISOString();
-
-      store.atzimes.push({
-        id: id,
-        clientId: m.clientId,
-        employeeId: m.employeeId,
-        date: today,
-        shift: m.shift || 'R',
-        category: m.category,
-        field: m.field,
-        value: m.value,
-        lastModified: nowStr,
-        lastBy: m.employeeId
-      });
-      store.atzimes_log.push({
-        id: 'l_' + Date.now(),
-        markId: id,
-        clientId: m.clientId,
-        employeeId: m.employeeId,
-        date: today,
-        time: new Date().toTimeString().split(' ')[0],
-        shift: m.shift || 'R',
-        category: m.category,
-        field: m.field,
-        value: m.value,
-        prevValue: null,
-        type: 'Jauns',
-        created: nowStr
-      });
-      setStore(store);
-      return createResponse(200, { success: true, id: id });
-    }
-
-    if (action === 'createTask' || action === 'logDay') {
-      setStore(store);
-      return createResponse(200, { success: true });
-    }
-
-    return createResponse(400, { error: 'Nezināma darbība: ' + action });
+    return routeAction(data);
   } catch (err) {
-    return createResponse(500, { error: err.toString() });
+    return createResponse(500, { error: 'Kļūda: ' + err.toString() });
   }
+}
+
+function routeAction(data) {
+  const action = data.action;
+  try {
+    if (action === 'createClient') return handleCreateClient(data);
+    if (action === 'createEmployee') return handleCreateEmployee(data);
+    if (action === 'updateClient') return handleUpdate(data, 'klienti');
+    if (action === 'updateEmployee') return handleUpdate(data, 'darbinieki');
+    if (action === 'mark') return handleMark(data);
+    if (action === 'createTask') return handleCreateTask(data);
+    if (action === 'logDay') return handleLogDay(data);
+    return createResponse(200, { success: true });
+  } catch (err) {
+    return createResponse(500, { error: 'Kļūda: ' + err.toString() });
+  }
+}
+
+function handleLoad() {
+  return createResponse(200, {
+    darbinieki: getSheetData(getSheet('darbinieki')),
+    klienti: getSheetData(getSheet('klienti')),
+    atzimes: getSheetData(getSheet('atzimes')),
+    atzimes_log: getSheetData(getSheet('atzimes_log')),
+    dienas_ierakti: getSheetData(getSheet('dienas_ierakti')),
+    uzdevomi: getSheetData(getSheet('uzdevomi'))
+  });
+}
+
+function handleCreateClient(data) {
+  const sheet = getSheet('klienti');
+  const c = data.data;
+  const id = 'c_' + Date.now();
+  appendRow(sheet, {
+    id: id,
+    vards: c.vards || '',
+    uzvards: c.uzvards || '',
+    dzimis: c.dzimis || '',
+    dieta: c.dieta || '',
+    saskarsmes: c.saskarsmes || '',
+    aktivs: true
+  });
+  return createResponse(200, { success: true, id: id });
+}
+
+function handleCreateEmployee(data) {
+  const sheet = getSheet('darbinieki');
+  const e = data.data;
+  const id = 'e_' + Date.now();
+  appendRow(sheet, {
+    id: id,
+    vards: e.vards || '',
+    uzvards: e.uzvards || '',
+    loma: e.loma || 'aprūpētājs',
+    pin_kods: String(e.pin || ''),
+    aktivs: true,
+    parole: e.parole || ''
+  });
+  return createResponse(200, { success: true, id: id });
+}
+
+function handleUpdate(data, sheetName) {
+  const sheet = getSheet(sheetName);
+  const row = findRow(sheet, [['id', data.data.id]]);
+  if (!row) return createResponse(404, { error: 'Nav atrasts' });
+  Object.keys(data.data).forEach(f => {
+    if (f !== 'id' && data.data[f] !== undefined) setCellValue(sheet, row.row, f, data.data[f]);
+  });
+  return createResponse(200, { success: true });
+}
+
+function handleMark(data) {
+  const atzimesSheet = getSheet('atzimes');
+  const logSheet = getSheet('atzimes_log');
+  const m = data.data;
+  const id = 'm_' + Date.now();
+  const today = m.date || Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  const nowStr = new Date().toISOString();
+
+  appendRow(atzimesSheet, {
+    id: id,
+    klients_id: m.clientId,
+    darbinieks_id: m.employeeId,
+    datums: today,
+    periods: m.shift || 'R',
+    kategorija: m.category,
+    lauka_nosaukums: m.field,
+    vertiba: m.value,
+    pedeja_vertiba: m.value,
+    pedeja_laiks: nowStr,
+    darbinieks_pedejais: m.employeeId
+  });
+
+  appendRow(logSheet, {
+    id: 'l_' + Date.now(),
+    atzimes_id: id,
+    klients_id: m.clientId,
+    darbinieks_id: m.employeeId,
+    datums: today,
+    laiks: new Date().toTimeString().split(' ')[0],
+    periods: m.shift || 'R',
+    kategorija: m.category,
+    lauka_nosaukums: m.field,
+    vertiba: m.value,
+    papilgs_info: '',
+    izveidots: nowStr
+  });
+
+  return createResponse(200, { success: true, id: id });
+}
+
+function handleCreateTask(data) {
+  const sheet = getSheet('uzdevomi');
+  const t = data.data;
+  const id = 't_' + Date.now();
+  appendRow(sheet, {
+    id: id,
+    teksts: t.teksts || '',
+    darbinieks_id: t.employeeId || '',
+    termins: t.termins || '',
+    prioritate: t.prioritate || 'videja',
+    statuss: 'jauns',
+    pabeigts: false
+  });
+  return createResponse(200, { success: true, id: id });
+}
+
+function handleLogDay(data) {
+  const sheet = getSheet('dienas_ierakti');
+  const id = 'd_' + Date.now();
+  const today = data.data.date || Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  appendRow(sheet, {
+    id: id,
+    klients_id: data.data.clientId,
+    darbinieks_id: data.data.employeeId,
+    datums: today,
+    statuss: data.data.status || 'pabeigts',
+    pabeigts: data.data.completed !== false,
+    labotajs_id: data.data.employeeId
+  });
+  return createResponse(200, { success: true, id: id });
 }
 
 function createResponse(status, data) {

@@ -1,3 +1,53 @@
+const FIELD_ALIASES = {
+  'vārds': 'vards',
+  'uzvārds': 'uzvards',
+  'loma': 'loma',
+  'pin_kods': 'pin',
+  'aktīvs': 'aktivs',
+  'dzimšanas_datums': 'dzimis',
+  'diēta': 'dieta',
+  'saskarsmes_īpatnības': 'saskarsmes',
+  'parole': 'parole',
+  'id': 'id',
+  'klients_id': 'klienti_id',
+  'darbinieks_id': 'darbinieki_id',
+  'datums': 'datums',
+  'periods': 'periods',
+  'kategorija': 'kategorija',
+  'lauka_nosaukums': 'lauka_nosaukums',
+  'vērtība': 'vertiba',
+  'pēdējā_vērtība': 'pedeja_vertiba',
+  'pēdējais_laiks': 'pedeja_laiks',
+  'darbinieks_pēdējais': 'darbinieks_pedejais',
+  'atzīmes_id': 'atzimes_id',
+  'laiks': 'laiks',
+  'papildus_info': 'papilgs_info',
+  'izveidots': 'izveidots',
+  'teksts': 'teksts',
+  'termiņš': 'termins',
+  'prioritāte': 'prioritate',
+  'statuss': 'statuss',
+  'pabeigts': 'pabeigts',
+  'labotājs_id': 'labotajs_id',
+  '24h': 'h24'
+};
+
+function normalizeRow(row) {
+  const out = {};
+  for (const key of Object.keys(row)) {
+    const k = key.toLowerCase().trim();
+    const target = FIELD_ALIASES[k] || k.replace(/ /g, '_');
+    let v = row[key];
+    if (target === 'pin' && typeof v === 'number') v = String(v);
+    if (target === 'aktivs' && typeof v === 'string') {
+      v = v === 'TRUE' || v === 'true' || v === '1';
+    }
+    if (v === null || v === undefined) v = '';
+    out[target] = v;
+  }
+  return out;
+}
+
 class SyncManager {
   constructor(db, config) {
     this.db = db;
@@ -16,15 +66,13 @@ class SyncManager {
     });
     window.addEventListener('offline', () => {
       this.online = false;
-      this.updateStatus(CONFIG.STATUS.PENDING);
     });
     this.syncInterval = setInterval(() => this.sync(), 30000);
   }
 
   updateStatus(newStatus) {
     this.config.currentStatus = newStatus;
-    const event = new CustomEvent('syncStatusChange', { detail: newStatus });
-    window.dispatchEvent(event);
+    window.dispatchEvent(new CustomEvent('syncStatusChange', { detail: newStatus }));
   }
 
   enqueueChange(change) {
@@ -32,132 +80,112 @@ class SyncManager {
       id: this.db.generateId(),
       ...change,
       ts: Date.now(),
-      status: CONFIG.STATUS.PENDING
+      status: 'pending'
     };
     this.queue.push(record);
-    this.db.add(CONFIG.STORES.PENDING, record);
-    if (this.online) {
-      this.sync();
-    }
+    this.db.add('pending', record);
+    if (this.online) this.sync();
     return record;
   }
 
   async sync() {
-    if (this.syncing || !this.online) return;
-    this.syncing = true;
-
+    if (this.syncing) return;
     let pending;
     try {
-      pending = await this.db.getAll(CONFIG.STORES.PENDING);
+      pending = await this.db.getAll('pending');
     } catch (e) {
       pending = [];
     }
-
-    if (pending.length === 0) {
-      this.syncing = false;
-      this.updateStatus(CONFIG.STATUS.SAVED);
-      return;
-    }
-
-    this.updateStatus(CONFIG.STATUS.PENDING);
-
-    const unsynced = pending.filter(p => p.status === CONFIG.STATUS.PENDING);
+    const unsynced = pending.filter(p => p.status !== 'synced');
     if (unsynced.length === 0) {
-      this.syncing = false;
+      this.updateStatus('Saglabāts');
       return;
     }
-
+    if (!this.online) {
+      this.updateStatus('Bezsaistē');
+      return;
+    }
+    this.syncing = true;
+    this.updateStatus('Gaida nosūtīšanu');
     for (const item of unsynced) {
       try {
-        await this.sendToServer(item);
-        item.status = CONFIG.STATUS.SYNCED;
-        await this.db.put(CONFIG.STORES.PENDING, item);
+        const ok = await this.sendToServer(item);
+        if (ok) {
+          item.status = 'synced';
+          await this.db.put('pending', item);
+        } else {
+          item.status = 'error';
+          await this.db.put('pending', item);
+        }
       } catch (err) {
-        item.status = CONFIG.STATUS.ERROR;
-        await this.db.put(CONFIG.STORES.PENDING, item);
-        console.error('Sync failed for item:', item.id, err);
+        item.status = 'error';
+        await this.db.put('pending', item);
       }
     }
-
-    const stillPending = unsynced.filter(p => p.status !== CONFIG.STATUS.SYNCED);
-    if (stillPending.length > 0) {
-      this.updateStatus(CONFIG.STATUS.ERROR);
-    } else {
-      this.updateStatus(CONFIG.STATUS.SAVED);
-    }
-
+    const stillPending = unsynced.filter(p => p.status !== 'synced');
+    this.updateStatus(stillPending.length > 0 ? 'Neizdevās nosūtīt' : 'Saglabāts');
     this.syncing = false;
   }
 
   async sendToServer(item) {
-    const payload = JSON.stringify({
+    const payload = {
       action: item.action,
-      table: item.table,
       data: item.data,
-      clientId: item.id,
-      deviceTime: new Date().toISOString()
-    });
-
-    const url = this.config.GAS_URL + '?data=' + encodeURIComponent(payload);
-    await fetch(url, { method: 'GET', mode: 'no-cors' });
-
-    return true;
+      clientId: item.id
+    };
+    const url = this.config.GAS_URL + '?data=' + encodeURIComponent(JSON.stringify(payload));
+    try {
+      await fetch(url, { method: 'GET', mode: 'no-cors' });
+      return true;
+    } catch (err) {
+      try {
+        await fetch(this.config.GAS_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        return true;
+      } catch (err2) {
+        return false;
+      }
+    }
   }
 
   async loadInitialData() {
-    const hasGas = this.config.GAS_URL && !this.config.GAS_URL.includes('YOUR_GAS_DEPLOYMENT');
-    if (!hasGas) {
-      return await this._loadDemoData();
-    }
+    const result = { offline: false, count: {} };
+    const sheets = ['darbinieki', 'klienti', 'atzimes', 'atzimes_log', 'dienas_ierakti', 'uzdevomi'];
 
     try {
-      const response = await fetch(this.config.GAS_URL + '?action=load&deviceTime=' + Date.now());
-      const text = await response.text();
-      let data;
-      try {
-        data = JSON.parse(text);
-      } catch (e) {
-        data = null;
+      const url = this.config.GAS_URL + '?action=load';
+      const response = await fetch(url, { method: 'GET' });
+      if (response.ok) {
+        const data = await response.json();
+        for (const sheet of sheets) {
+          const rows = data[sheet] || [];
+          await this.db.clear(sheet);
+          for (const row of rows) {
+            const normalized = normalizeRow(row);
+            const id = normalized.id || (sheet + '_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5));
+            normalized.id = id;
+            if (sheet === 'darbinieki' && normalized.loma === 'administrators') normalized.loma = 'administrators';
+            await this.db.add(sheet, normalized);
+          }
+          result.count[sheet] = rows.length;
+        }
+        await this.db.setMeta('lastSync', Date.now());
+        await this.db.setMeta('initData', true);
+        return result;
       }
-
-      if (!data || !data.darbinieki) {
-        return await this._loadDemoData();
-      }
-
-      await this.db.clear('darbinieki');
-      await this.db.clear('klienti');
-      await this.db.clear('atzimes');
-      await this.db.clear('atzimes_log');
-      await this.db.clear('dienas_ierakti');
-      await this.db.clear('uzdevomi');
-
-      for (const row of data.darbinieki) { await this.db.add('darbinieki', row); }
-      for (const row of data.klienti) { await this.db.add('klienti', row); }
-      for (const row of data.atzimes) { await this.db.add('atzimes', row); }
-      for (const row of data.atzimes_log) { await this.db.add('atzimes_log', row); }
-      for (const row of data.dienas_ierakti) { await this.db.add('dienas_ierakti', row); }
-      for (const row of data.uzdevomi) { await this.db.add('uzdevomi', row); }
-
-      await this.db.setMeta('lastSync', Date.now());
-      await this.db.setMeta('initData', true);
-      this.updateStatus(CONFIG.STATUS.SAVED);
-
-      return { offline: false, count: {
-        darbinieki: data.darbinieki ? data.darbinieki.length : 0,
-        klienti: data.klienti ? data.klienti.length : 0
-      }};
     } catch (err) {
-      console.error('Initial load failed:', err);
-      const hasLocal = await this.hasLocalData();
-      if (!hasLocal) {
-        return await this._loadDemoData();
-      }
-      return { offline: true, hasLocal: true };
+      console.warn('GAS load failed:', err);
     }
-  }
 
-  async _loadDemoData() {
-    return { offline: true, demo: false, error: 'Nav GAS_URL' };
+    result.offline = true;
+    for (const sheet of sheets) {
+      result.count[sheet] = 0;
+    }
+    return result;
   }
 
   async hasLocalData() {
@@ -166,12 +194,20 @@ class SyncManager {
   }
 
   async getUnsyncedCount() {
-    const pending = await this.db.getAll(CONFIG.STORES.PENDING);
-    return pending.filter(p => p.status !== CONFIG.STATUS.SYNCED).length;
+    const pending = await this.db.getAll('pending');
+    return pending.filter(p => p.status !== 'synced').length;
   }
 
   async getUnsyncedItems() {
-    const pending = await this.db.getAll(CONFIG.STORES.PENDING);
-    return pending.filter(p => p.status !== CONFIG.STATUS.SYNCED);
+    const pending = await this.db.getAll('pending');
+    return pending.filter(p => p.status !== 'synced');
   }
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { SyncManager, normalizeRow, FIELD_ALIASES };
+}
+if (typeof globalThis !== 'undefined') {
+  globalThis.SyncManager = SyncManager;
+  globalThis.normalizeRow = normalizeRow;
 }
