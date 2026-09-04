@@ -25,7 +25,10 @@ class LoginController {
     }
 
     this.setupUI();
+    document.getElementById('loginBtn').disabled = true;
+    document.getElementById('pinInput').disabled = true;
     await this.loadInitialData();
+    document.getElementById('pinInput').disabled = false;
   }
 
   setupUI() {

@@ -90,22 +90,16 @@ class SyncManager {
   }
 
   async sendToServer(item) {
-    const payload = {
+    const payload = JSON.stringify({
       action: item.action,
       table: item.table,
       data: item.data,
       clientId: item.id,
       deviceTime: new Date().toISOString()
-    };
-
-    const response = await fetch(this.config.GAS_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(payload)
     });
+
+    const url = this.config.GAS_URL + '?data=' + encodeURIComponent(payload);
+    await fetch(url, { method: 'GET', mode: 'no-cors' });
 
     return true;
   }
