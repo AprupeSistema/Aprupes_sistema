@@ -70,9 +70,12 @@ class CareFormController {
     this.client = await this.db.get('klienti', this.clientId);
     if (!this.client) {
       const allClients = await this.db.getAll('klienti');
-      this.client = allClients.find(c => c.id === this.clientId || c.ID === this.clientId);
+      console.log('[care_form] clientId from URL:', this.clientId, 'type:', typeof this.clientId);
+      console.log('[care_form] all clients:', allClients.map(c => ({ id: c.id, ID: c.ID, vards: c.vards, uzvards: c.uzvards })));
+      this.client = allClients.find(c => c.id === this.clientId || c.ID === this.clientId || String(c.id) === String(this.clientId));
     }
     if (!this.client) {
+      console.warn('[care_form] client not found for id:', this.clientId);
       this.toast('Klients nav atrasts');
       setTimeout(() => window.location.href = 'aprupe.html', 1500);
       return;
