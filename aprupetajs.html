@@ -2,7 +2,7 @@
 <html lang="lv">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#2c3e50">
   <title>Aprūpes forma</title>
   <link rel="stylesheet" href="css/aprupetajs.css">
@@ -16,38 +16,44 @@
   </header>
 
   <main class="main">
-    <section class="client-info">
-      <div class="info-row">
-        <span class="info-label">Dzimšanas datums:</span>
-        <span id="clientDob">-</span>
+    <section class="client-info-card" id="clientInfoCard">
+      <div class="client-info-main">
+        <div class="client-info-name" id="clientName2">...</div>
+        <div class="client-info-meta" id="clientDob"></div>
       </div>
-      <div class="info-row">
-        <span class="info-label">Diēta:</span>
-        <span id="clientDiet">-</span>
-      </div>
-      <div class="info-row">
-        <span class="info-label">Saskarsmes īpatnības:</span>
-        <span id="clientSaskarsme">-</span>
+      <div class="client-info-tags">
+        <span class="info-tag" id="clientDiet">-</span>
+        <span class="info-tag" id="clientSaskarsme">-</span>
       </div>
     </section>
 
     <div class="shift-tabs">
-      <button class="shift-tab active" data-shift="R">Rīts</button>
-      <button class="shift-tab" data-shift="V">Vakars</button>
+      <button class="shift-tab active" data-shift="R">
+        <span class="shift-icon">☀️</span>
+        <span>Rīts</span>
+      </button>
+      <button class="shift-tab" data-shift="V">
+        <span class="shift-icon">🌙</span>
+        <span>Vakars</span>
+      </button>
     </div>
 
     <div id="formContainer" class="form-container">
       <div class="loading">Ielādēju formu...</div>
     </div>
 
-    <div class="signature-section">
-      <h3>Aprūpētāja paraksts</h3>
+    <div class="signature-card">
+      <div class="signature-card-left">
+        <div class="signature-card-title">Aprūpētāja paraksts</div>
+        <div class="signature-card-info" id="signedBy" style="display:none;"></div>
+      </div>
       <button id="signBtn" class="sign-btn">Parakstīties</button>
-      <div id="signedBy" class="signed-by" style="display:none;"></div>
     </div>
 
-    <div class="history-section">
-      <h3>Šodienas vēsture</h3>
+    <div class="history-card">
+      <div class="history-card-header">
+        <h3>📜 Šodienas vēsture</h3>
+      </div>
       <div id="historyContainer" class="history-container">
         <div class="loading">Nav ierakstu</div>
       </div>

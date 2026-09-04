@@ -91,9 +91,14 @@ class CareFormController {
     const vards = this.client.vards || this.client.Vārds || '';
     const uzvards = this.client.uzvards || this.client.Uzvārds || '';
     document.getElementById('clientName').textContent = vards + ' ' + uzvards;
-    document.getElementById('clientDob').textContent = this.formatDob(this.client.dzimis || this.client['Dzimšanas datums']);
-    document.getElementById('clientDiet').textContent = this.client.dieta || this.client.Diēta || '-';
-    document.getElementById('clientSaskarsme').textContent = this.client.saskarsmes || this.client['Saskarsmes īpatnības'] || '-';
+    document.getElementById('clientName2').textContent = vards + ' ' + uzvards;
+    document.getElementById('clientDob').textContent = 'Dzimis: ' + this.formatDob(this.client.dzimis || this.client['Dzimšanas datums']);
+    const diet = this.client.dieta || this.client.Diēta || '';
+    const saskarsme = this.client.saskarsmes || this.client['Saskarsmes īpatnības'] || '';
+    document.getElementById('clientDiet').textContent = diet || 'Diēta nav norādīta';
+    document.getElementById('clientDiet').classList.toggle('empty', !diet);
+    document.getElementById('clientSaskarsme').textContent = saskarsme || 'Saskarsme nav norādīta';
+    document.getElementById('clientSaskarsme').classList.toggle('empty', !saskarsme);
   }
 
   formatDob(dob) {
@@ -155,33 +160,67 @@ class CareFormController {
     this.bindFormEvents();
   }
 
+  sectionCard(cssClass, emoji, title, statusKey, body) {
+    let status = '';
+    if (statusKey) {
+      const completed = this.isSectionCompleted(statusKey);
+      status = completed ? '<span class="section-status completed">Pabeigts</span>' : '<span class="section-status">Aktīvs</span>';
+    }
+    return `<div class="section-card ${cssClass}">
+      <div class="section-header">
+        <div class="section-title"><span class="section-emoji">${emoji}</span><span>${title}</span></div>
+        ${status}
+      </div>
+      ${body}
+    </div>`;
+  }
+
+  isSectionCompleted(sectionKey) {
+    if (sectionKey === 'temp') {
+      const m = this.getMark(this.currentShift, 'temp', 'temperatura');
+      return m && m.value !== '';
+    }
+    if (sectionKey === 'edinasana') {
+      const fields = CONFIG.FIELD_DEFINITIONS.edinasana.fields;
+      return fields.some(f => {
+        const m = this.getMark(this.currentShift, 'edinasana', f.field);
+        return m && m.value;
+      });
+    }
+    return false;
+  }
+
   renderTempSection(shift) {
     const mark = this.getMark(shift, 'temp', 'temperatura');
     const value = mark ? mark.value : '';
-    return `
-      <div class="form-section">
-        <h3>🌡️ Temperatūra</h3>
-        <div class="form-row">
-          <span class="field-label">Pēdējā vērtība:</span>
-          <div class="field-controls">
-            <input type="number" step="0.1" min="30" max="45" class="number-input" data-cat="temp" data-field="temperatura" value="${value}" placeholder="36.6">
-          </div>
+    const numVal = parseFloat(value);
+    const isFever = !isNaN(numVal) && numVal >= 37;
+
+    const body = `
+      <div class="section-row">
+        <div class="section-row-label">
+          <span>Pēdējā vērtība</span>
+          ${value ? `<span class="current-value ${isFever ? 'fever' : ''}">${value}°C${isFever ? ' 🔥' : ''}</span>` : '<span class="current-value empty"></span>'}
         </div>
+        <input type="number" step="0.1" min="30" max="45" class="number-input temp-input ${isFever ? 'fever' : ''} ${value ? 'has-value' : ''}" data-cat="temp" data-field="temperatura" value="${value}" placeholder="36.6">
       </div>
     `;
+    return this.sectionCard('section-temp', '🌡️', 'Temperatūra', 'temp', body);
   }
 
   renderHigienaSection(shift) {
     const fields = CONFIG.FIELD_DEFINITIONS.higiena.fields;
-    let html = `<div class="form-section"><h3>🧼 Higiēna</h3>`;
+    let body = '';
     fields.forEach(f => {
       const mark = this.getMark(shift, 'higiena', f.field);
-      const active = mark && mark.value;
       const hasValue = mark && mark.value === 'X';
-      html += `
-        <div class="form-row">
-          <span class="field-label">${f.label}</span>
-          <div class="field-controls">
+      body += `
+        <div class="section-row">
+          <div class="section-row-label">
+            <span>${f.label}</span>
+            <span class="current-value ${hasValue ? '' : 'empty'}">${hasValue ? '✓ Izpildīts' : ''}</span>
+          </div>
+          <div class="opt-group">
             <button class="opt-btn ${hasValue ? 'active' : ''}" data-cat="higiena" data-field="${f.field}" data-value="X" data-shift="${shift}">
               ${hasValue ? '✓' : 'X'}
             </button>
@@ -189,20 +228,22 @@ class CareFormController {
         </div>
       `;
     });
-    html += '</div>';
-    return html;
+    return this.sectionCard('section-higiena', '🧼', 'Higiēna', null, body);
   }
 
   renderAktivitateSection(shift) {
     const fields = CONFIG.FIELD_DEFINITIONS.aktivitate.fields;
-    let html = `<div class="form-section"><h3>🚶 Aktivitāte</h3>`;
+    let body = '';
     fields.forEach(f => {
       const mark = this.getMark(shift, 'aktivitate', f.field);
       const hasValue = mark && mark.value === 'X';
-      html += `
-        <div class="form-row">
-          <span class="field-label">${f.label}</span>
-          <div class="field-controls">
+      body += `
+        <div class="section-row">
+          <div class="section-row-label">
+            <span>${f.label}</span>
+            <span class="current-value ${hasValue ? '' : 'empty'}">${hasValue ? '✓' : ''}</span>
+          </div>
+          <div class="opt-group">
             <button class="opt-btn ${hasValue ? 'active' : ''}" data-cat="aktivitate" data-field="${f.field}" data-value="X" data-shift="${shift}">
               ${hasValue ? '✓' : 'X'}
             </button>
@@ -210,71 +251,76 @@ class CareFormController {
         </div>
       `;
     });
-    html += '</div>';
-    return html;
+    return this.sectionCard('section-aktivitate', '🚶', 'Aktivitāte', null, body);
   }
 
   renderEdinasanaSection(shift) {
     const fields = CONFIG.FIELD_DEFINITIONS.edinasana.fields;
-    let html = `<div class="form-section"><h3>🍽️ Ēdīšana</h3>`;
+    let body = '';
     fields.forEach(f => {
       const mark = this.getMark(shift, 'edinasana', f.field);
       const current = mark ? mark.value : '';
-      html += `
-        <div class="form-row">
-          <span class="field-label">${f.label}</span>
-          <div class="field-controls">
+      const valueLabel = current === 'X' ? '✓ Visa' : current === '½' ? '½ Puse' : current === 'A' ? '✗ Atteicās' : '';
+      body += `
+        <div class="section-row">
+          <div class="section-row-label">
+            <span>${f.label}</span>
+            <span class="current-value ${valueLabel ? '' : 'empty'}">${valueLabel}</span>
+          </div>
+          <div class="opt-group">
             <button class="opt-btn ${current === 'X' ? 'active' : ''}" data-cat="edinasana" data-field="${f.field}" data-value="X" data-shift="${shift}">X</button>
             <button class="opt-btn food-half ${current === '½' ? 'active' : ''}" data-cat="edinasana" data-field="${f.field}" data-value="½" data-shift="${shift}">½</button>
-            <button class="opt-btn ${current === 'A' ? 'active' : ''}" data-cat="edinasana" data-field="${f.field}" data-value="A" data-shift="${shift}">A</button>
+            <button class="opt-btn refused ${current === 'A' ? 'active' : ''}" data-cat="edinasana" data-field="${f.field}" data-value="A" data-shift="${shift}">A</button>
           </div>
         </div>
       `;
     });
-    html += '</div>';
-    return html;
+    return this.sectionCard('section-edinasana', '🍽️', 'Ēdīšana', 'edinasana', body);
   }
 
   renderSikdrumiSection(shift) {
     const urinsMark = this.getMark(shift, 'sikdrumi', 'urina_daudzums');
     const uznemtsMark = this.getMark(shift, 'sikdrumi', 'uznemts_ml');
-    return `
-      <div class="form-section">
-        <h3>💧 Šķidrumi</h3>
-        <div class="form-row">
-          <span class="field-label">Diennakts urīna daudzums (ml)</span>
-          <div class="field-controls">
-            <input type="number" min="0" step="50" class="number-input" data-cat="sikdrumi" data-field="urina_daudzums" value="${urinsMark ? urinsMark.value : ''}" placeholder="0">
-          </div>
+    const body = `
+      <div class="section-row">
+        <div class="section-row-label">
+          <span>Diennakts urīna daudzums (ml)</span>
+          ${urinsMark && urinsMark.value ? `<span class="current-value">${urinsMark.value} ml</span>` : '<span class="current-value empty"></span>'}
         </div>
-        <div class="form-row">
-          <span class="field-label">Uzņemts H2O (24h, ml)</span>
-          <div class="field-controls">
-            <input type="number" min="0" step="50" class="number-input" data-cat="sikdrumi" data-field="uznemts_ml" value="${uznemtsMark ? uznemtsMark.value : ''}" placeholder="0">
-          </div>
+        <input type="number" min="0" step="50" class="number-input ${urinsMark && urinsMark.value ? 'has-value' : ''}" data-cat="sikdrumi" data-field="urina_daudzums" value="${urinsMark ? urinsMark.value : ''}" placeholder="0">
+      </div>
+      <div class="section-row">
+        <div class="section-row-label">
+          <span>Uzņemts H2O (24h, ml)</span>
+          ${uznemtsMark && uznemtsMark.value ? `<span class="current-value">${uznemtsMark.value} ml</span>` : '<span class="current-value empty"></span>'}
         </div>
+        <input type="number" min="0" step="50" class="number-input ${uznemtsMark && uznemtsMark.value ? 'has-value' : ''}" data-cat="sikdrumi" data-field="uznemts_ml" value="${uznemtsMark ? uznemtsMark.value : ''}" placeholder="0">
       </div>
     `;
+    return this.sectionCard('section-sikdrumi', '💧', 'Šķidrumi', null, body);
   }
 
   renderFiziologijaSection(shift) {
     const mark = this.getMark(shift, 'fiziologija', 'vedera_izeja');
     const current = mark ? mark.value : '';
-    return `
-      <div class="form-section">
-        <h3>🚽 Vēdera izeja</h3>
-        <div class="form-row">
-          <span class="field-label">Vērtība</span>
-          <div class="field-controls">
-            <button class="opt-btn ${current === 'N' ? 'active' : ''}" data-cat="fiziologija" data-field="vedera_izeja" data-value="N" data-shift="${shift}">N</button>
-            <button class="opt-btn ${current === 'A' ? 'active' : ''}" data-cat="fiziologija" data-field="vedera_izeja" data-value="A" data-shift="${shift}">A</button>
-            <button class="opt-btn ${current === 'S' ? 'active' : ''}" data-cat="fiziologija" data-field="vedera_izeja" data-value="S" data-shift="${shift}">S</button>
-            <button class="opt-btn ${current === 'C' ? 'active' : ''}" data-cat="fiziologija" data-field="vedera_izeja" data-value="C" data-shift="${shift}">C</button>
-            <button class="opt-btn ${current === 'K' ? 'active' : ''}" data-cat="fiziologija" data-field="vedera_izeja" data-value="K" data-shift="${shift}">K</button>
-          </div>
+    const labels = { 'N': 'Normāla', 'A': 'Aizcietējums', 'S': 'Svecīte', 'C': 'Caureja', 'K': 'Klizma' };
+    const valueLabel = labels[current] || '';
+    const body = `
+      <div class="section-row">
+        <div class="section-row-label">
+          <span>Vērtība</span>
+          <span class="current-value ${valueLabel ? '' : 'empty'}">${valueLabel}</span>
+        </div>
+        <div class="opt-group">
+          <button class="opt-btn fiziologija ${current === 'N' ? 'active' : ''}" data-cat="fiziologija" data-field="vedera_izeja" data-value="N" data-shift="${shift}">N</button>
+          <button class="opt-btn fiziologija ${current === 'A' ? 'active' : ''}" data-cat="fiziologija" data-field="vedera_izeja" data-value="A" data-shift="${shift}">A</button>
+          <button class="opt-btn fiziologija ${current === 'S' ? 'active' : ''}" data-cat="fiziologija" data-field="vedera_izeja" data-value="S" data-shift="${shift}">S</button>
+          <button class="opt-btn fiziologija ${current === 'C' ? 'active' : ''}" data-cat="fiziologija" data-field="vedera_izeja" data-value="C" data-shift="${shift}">C</button>
+          <button class="opt-btn fiziologija ${current === 'K' ? 'active' : ''}" data-cat="fiziologija" data-field="vedera_izeja" data-value="K" data-shift="${shift}">K</button>
         </div>
       </div>
     `;
+    return this.sectionCard('section-fiziologija', '🚽', 'Vēdera izeja', null, body);
   }
 
   renderCitiPasakumiSection(shift) {
@@ -283,40 +329,49 @@ class CareFormController {
     const markCiemini = this.getMark(shift, 'citsi_pasakomi', 'ciemini');
     const markAutins = this.getMark(shift, 'citsi_pasakomi', 'autins_biksitu_skaits');
 
-    return `
-      <div class="form-section">
-        <h3>📋 Citi pasākumi</h3>
-        <div class="form-row">
-          <span class="field-label">Ādas kopšanas līdzekļi</span>
-          <div class="field-controls">
-            <button class="opt-btn ${markAda && markAda.value === 'X' ? 'active' : ''}" data-cat="citsi_pasakomi" data-field="adas_kopsana" data-value="X" data-shift="${shift}">
-              ${markAda && markAda.value === 'X' ? '✓' : 'X'}
-            </button>
-          </div>
+    const cieminiVal = markCiemini ? markCiemini.value : '';
+    const body = `
+      <div class="section-row">
+        <div class="section-row-label">
+          <span>Ādas kopšanas līdzekļi</span>
+          <span class="current-value ${markAda && markAda.value === 'X' ? '' : 'empty'}">${markAda && markAda.value === 'X' ? '✓' : ''}</span>
         </div>
-        <div class="form-row">
-          <span class="field-label">Pastaigas svaigā gaisā</span>
-          <div class="field-controls">
-            <button class="opt-btn ${markPastaiga && markPastaiga.value === 'X' ? 'active' : ''}" data-cat="citsi_pasakomi" data-field="pastaigas" data-value="X" data-shift="${shift}">
-              ${markPastaiga && markPastaiga.value === 'X' ? '✓' : 'X'}
-            </button>
-          </div>
-        </div>
-        <div class="form-row">
-          <span class="field-label">Ciemiņi</span>
-          <div class="field-controls">
-            <button class="opt-btn ${markCiemini && markCiemini.value === 'X' ? 'active' : ''}" data-cat="citsi_pasakomi" data-field="ciemini" data-value="X" data-shift="${shift}">Jā</button>
-            <button class="opt-btn ${markCiemini && markCiemini.value === 'Nē' ? 'active' : ''}" data-cat="citsi_pasakomi" data-field="ciemini" data-value="Nē" data-shift="${shift}">Nē</button>
-          </div>
-        </div>
-        <div class="form-row">
-          <span class="field-label">Autiņbiksīšu maiņa (skaits)</span>
-          <div class="field-controls">
-            <input type="number" min="0" step="1" class="number-input" data-cat="citsi_pasakomi" data-field="autins_biksitu_skaits" value="${markAutins ? markAutins.value : ''}" placeholder="0">
-          </div>
+        <div class="opt-group">
+          <button class="opt-btn ${markAda && markAda.value === 'X' ? 'active' : ''}" data-cat="citsi_pasakomi" data-field="adas_kopsana" data-value="X" data-shift="${shift}">
+            ${markAda && markAda.value === 'X' ? '✓' : 'X'}
+          </button>
         </div>
       </div>
+      <div class="section-row">
+        <div class="section-row-label">
+          <span>Pastaigas svaigā gaisā</span>
+          <span class="current-value ${markPastaiga && markPastaiga.value === 'X' ? '' : 'empty'}">${markPastaiga && markPastaiga.value === 'X' ? '✓' : ''}</span>
+        </div>
+        <div class="opt-group">
+          <button class="opt-btn ${markPastaiga && markPastaiga.value === 'X' ? 'active' : ''}" data-cat="citsi_pasakomi" data-field="pastaigas" data-value="X" data-shift="${shift}">
+            ${markPastaiga && markPastaiga.value === 'X' ? '✓' : 'X'}
+          </button>
+        </div>
+      </div>
+      <div class="section-row">
+        <div class="section-row-label">
+          <span>Ciemiņi</span>
+          <span class="current-value ${cieminiVal ? '' : 'empty'}">${cieminiVal || ''}</span>
+        </div>
+        <div class="opt-group">
+          <button class="opt-btn ${cieminiVal === 'X' ? 'active' : ''}" data-cat="citsi_pasakomi" data-field="ciemini" data-value="X" data-shift="${shift}">Jā</button>
+          <button class="opt-btn refused ${cieminiVal === 'Nē' ? 'active' : ''}" data-cat="citsi_pasakomi" data-field="ciemini" data-value="Nē" data-shift="${shift}">Nē</button>
+        </div>
+      </div>
+      <div class="section-row">
+        <div class="section-row-label">
+          <span>Autiņbiksīšu maiņa (skaits)</span>
+          ${markAutins && markAutins.value ? `<span class="current-value">${markAutins.value}</span>` : '<span class="current-value empty"></span>'}
+        </div>
+        <input type="number" min="0" step="1" class="number-input ${markAutins && markAutins.value ? 'has-value' : ''}" data-cat="citsi_pasakomi" data-field="autins_biksitu_skaits" value="${markAutins ? markAutins.value : ''}" placeholder="0">
+      </div>
     `;
+    return this.sectionCard('section-citi', '📋', 'Citi pasākumi', null, body);
   }
 
   bindFormEvents() {
