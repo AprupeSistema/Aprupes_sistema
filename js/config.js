@@ -2,7 +2,7 @@ const CONFIG = {
   APP_NAME: 'Aprūpes sistēma',
   VERSION: '1.0.0',
 
-  GAS_URL: 'https://script.google.com/macros/s/AKfycbyzq3ctKduCkkJiWVL0y2_kNoR6DG-Oljyk48NFz_8FkHpVoTJj3vCwKyjN7pCiO8IZCA/exec',
+  GAS_URL: 'https://script.google.com/macros/s/AKfycbwPb026MungYiVUes0aXuR5XLZDqDABU2VG4XakrQ_3GG1Nq-KIVi3J2V1wQ_ZFigNJvA/exec',
 
   SHIFTS: {
     R: 'Rīts',
