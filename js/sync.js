@@ -38,11 +38,25 @@ function normalizeRow(row) {
     const k = key.toLowerCase().trim();
     const target = FIELD_ALIASES[k] || k.replace(/ /g, '_');
     let v = row[key];
+    if (v === null || v === undefined) v = '';
+    if (typeof v === 'string') v = v.trim();
     if (target === 'pin' && typeof v === 'number') v = String(v);
     if (target === 'aktivs' && typeof v === 'string') {
       v = v === 'TRUE' || v === 'true' || v === '1';
     }
-    if (v === null || v === undefined) v = '';
+    if (target === 'datums' && v instanceof Date) {
+      v = v.toISOString().split('T')[0];
+    } else if (target === 'datums' && typeof v === 'string' && v.includes('/')) {
+      const parts = v.split('/');
+      if (parts.length === 3) {
+        v = parts[2] + '-' + parts[0].padStart(2, '0') + '-' + parts[1].padStart(2, '0');
+      }
+    } else if (target === 'datums' && typeof v === 'string' && v.includes('.')) {
+      const parts = v.split('.');
+      if (parts.length === 3) {
+        v = parts[2] + '-' + parts[1].padStart(2, '0') + '-' + parts[0].padStart(2, '0');
+      }
+    }
     out[target] = v;
   }
   return out;

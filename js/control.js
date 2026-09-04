@@ -25,9 +25,12 @@ class ControlPanel {
     window.careSync = this.sync;
 
     this.setupUI();
-    await this.sync.loadInitialData();
     await this.loadData();
     this.renderAll();
+    this.sync.loadInitialData().then(async () => {
+      await this.loadData();
+      this.renderAll();
+    });
   }
 
   setupUI() {

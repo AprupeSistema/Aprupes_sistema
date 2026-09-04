@@ -38,13 +38,20 @@ class CareFormController {
     });
 
     this.setupEventListeners();
-    await this.sync.loadInitialData();
     await this.loadClient();
     await this.loadMarks();
     await this.loadHistory();
     this.renderForm();
     this.renderHistory();
     this.renderSignature();
+    this.sync.loadInitialData().then(async () => {
+      await this.loadClient();
+      await this.loadMarks();
+      await this.loadHistory();
+      this.renderForm();
+      this.renderHistory();
+      this.renderSignature();
+    });
   }
 
   setupEventListeners() {

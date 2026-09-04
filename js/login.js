@@ -25,10 +25,32 @@ class LoginController {
     }
 
     this.setupUI();
-    document.getElementById('loginBtn').disabled = true;
-    document.getElementById('pinInput').disabled = true;
-    await this.loadInitialData();
-    document.getElementById('pinInput').disabled = false;
+    const pinInput = document.getElementById('pinInput');
+    pinInput.disabled = false;
+
+    const hasLocal = await this.sync.hasLocalData();
+    const statusMsg = document.getElementById('statusMessage');
+    if (hasLocal) {
+      statusMsg.textContent = 'Gatavs (lokāli dati)';
+      document.body.classList.add('online');
+    } else {
+      statusMsg.textContent = 'Ielādēju datus...';
+    }
+
+    this.sync.loadInitialData().then(async (result) => {
+      if (result.offline) {
+        const hasAfter = await this.sync.hasLocalData();
+        if (!hasAfter) {
+          statusMsg.textContent = 'Nav interneta un nav lokālu datu.';
+        }
+      } else {
+        const total = Object.values(result.count || {}).reduce((a, b) => a + b, 0);
+        statusMsg.textContent = 'Gatavs (' + total + ' ieraksti)';
+        document.body.classList.add('online');
+      }
+    });
+
+    pinInput.focus();
   }
 
   setupUI() {
