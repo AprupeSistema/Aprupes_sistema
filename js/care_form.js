@@ -4,11 +4,35 @@ class CareFormController {
     this.sync = null;
     this.client = null;
     this.clientId = null;
-    this.currentShift = 'R';
+    this.currentShift = this.detectCurrentShift();
     this.marks = new Map();
     this.currentUser = null;
     this.history = [];
     this.init();
+  }
+
+  detectCurrentShift() {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 19) return 'R';
+    return 'V';
+  }
+
+  setupShiftAutoUpdate() {
+    const applyShift = () => {
+      const detected = this.detectCurrentShift();
+      const tabs = document.querySelectorAll('.shift-tab');
+      tabs.forEach(t => {
+        const isActive = t.dataset.shift === detected;
+        t.classList.toggle('active', isActive);
+        t.classList.toggle('auto-detected', isActive);
+      });
+      this.currentShift = detected;
+      if (this.marks) this.updateCategoryStatuses();
+    };
+
+    applyShift();
+
+    setInterval(applyShift, 60000);
   }
 
   async init() {
@@ -300,6 +324,8 @@ class CareFormController {
         this.updateCategoryStatuses();
       });
     });
+
+    this.setupShiftAutoUpdate();
 
     document.getElementById('signBtn').addEventListener('click', () => {
       this.handleSign();

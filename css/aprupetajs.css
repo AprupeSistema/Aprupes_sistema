@@ -192,6 +192,28 @@ body {
   box-shadow: 0 2px 8px rgba(44, 62, 80, 0.3);
 }
 
+.shift-tab.auto-detected::after {
+  content: '✓';
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  font-size: 10px;
+  background: var(--accent);
+  color: white;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.shift-tab {
+  position: relative;
+}
+
 .shift-icon {
   font-size: 18px;
 }
