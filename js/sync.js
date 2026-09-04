@@ -48,9 +48,6 @@ function normalizeDate(v) {
     if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
       return s.substring(0, 10);
     }
-    if (/^\d{4}-\d{2}-\d{2}T/.test(s)) {
-      return s.substring(0, 10);
-    }
     if (/^\d{2}\.\d{2}\.\d{4}$/.test(s)) {
       const parts = s.split('.');
       return parts[2] + '-' + parts[1] + '-' + parts[0];
@@ -58,13 +55,6 @@ function normalizeDate(v) {
     if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) {
       const parts = s.split('/');
       return parts[2] + '-' + parts[0] + '-' + parts[1];
-    }
-    const d = new Date(s);
-    if (!isNaN(d.getTime())) {
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, '0');
-      const dd = String(d.getDate()).padStart(2, '0');
-      return y + '-' + m + '-' + dd;
     }
   }
   return v;
