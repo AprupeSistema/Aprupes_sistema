@@ -7,6 +7,7 @@ class ControlPanel {
     this.allEmployees = [];
     this.allLog = [];
     this.allMarks = [];
+    this.allDiary = [];
     this.init();
   }
 
@@ -43,7 +44,8 @@ class ControlPanel {
     });
 
     const today = new Date().toISOString().split('T')[0];
-    document.getElementById('dateFilter').value = today;
+    const dateEl = document.getElementById('dateFilter');
+    if (dateEl) dateEl.value = today;
 
     document.getElementById('refreshBtn').addEventListener('click', () => this.renderAll());
     document.getElementById('exportBtn').addEventListener('click', () => this.exportExcel());
@@ -55,20 +57,52 @@ class ControlPanel {
     this.allEmployees = await this.db.getAll('darbinieki');
     this.allMarks = await this.db.getAll('atzimes');
     this.allLog = await this.db.getAll('atzimes_log');
+    this.allDiary = await this.db.getAll('dienas_ierakti');
+
+    if (!this.allClients || this.allClients.length === 0) {
+      const fromMarks = new Map();
+      [...(this.allMarks || []), ...(this.allLog || [])].forEach(r => {
+        const cid = r.clientId || r.klientiId || r.klients_id;
+        if (cid && !fromMarks.has(String(cid))) {
+          fromMarks.set(String(cid), { id: String(cid), vards: '?', uzvards: '?' });
+        }
+      });
+      this.allClients = Array.from(fromMarks.values());
+    }
 
     const clientFilter = document.getElementById('clientFilter');
-    clientFilter.innerHTML = '<option value="">Visi klienti</option>' +
-      this.allClients.map(c => {
-        const name = (c.vards || c.Vārds || '') + ' ' + (c.uzvards || c.Uzvārds || '');
-        return `<option value="${c.id || c.ID}">${name}</option>`;
-      }).join('');
+    if (clientFilter) {
+      clientFilter.innerHTML = '<option value="">Visi klienti (' + this.allClients.length + ')</option>' +
+        this.allClients.map(c => {
+          const name = (c.vards || c.Vārds || '') + ' ' + (c.uzvards || c.Uzvārds || '');
+          return `<option value="${c.id || c.ID}">${this.escapeHtml(name.trim() || ('ID: ' + (c.id || c.ID)))}</option>`;
+        }).join('');
+    }
 
     const empFilter = document.getElementById('employeeFilter');
-    empFilter.innerHTML = '<option value="">Visi</option>' +
-      this.allEmployees.map(e => {
-        const name = (e.vards || e.Vārds || '') + ' ' + (e.uzvards || e.Uzvārds || '');
-        return `<option value="${e.id || e.ID}">${name}</option>`;
-      }).join('');
+    if (empFilter) {
+      empFilter.innerHTML = '<option value="">Visi (' + this.allEmployees.length + ')</option>' +
+        this.allEmployees.map(e => {
+          const name = (e.vards || e.Vārds || '') + ' ' + (e.uzvards || e.Uzvārds || '');
+          return `<option value="${e.id || e.ID}">${this.escapeHtml(name.trim() || ('ID: ' + (e.id || e.ID)))}</option>`;
+        }).join('');
+    }
+  }
+
+  normalizeDateForFilter(d) {
+    if (!d) return '';
+    if (typeof d === 'string') {
+      if (/^\d{4}-\d{2}-\d{2}/.test(d)) return d.substring(0, 10);
+      if (/^\d{2}\.\d{2}\.\d{4}$/.test(d)) {
+        const p = d.split('.');
+        return p[2] + '-' + p[1] + '-' + p[0];
+      }
+      if (/^\d{2}\/\d{2}\/\d{4}$/.test(d)) {
+        const p = d.split('/');
+        return p[2] + '-' + p[0] + '-' + p[1];
+      }
+    }
+    return d;
   }
 
   getFilteredData() {
@@ -77,14 +111,25 @@ class ControlPanel {
     const employeeId = document.getElementById('employeeFilter').value;
     const onlyEdited = document.getElementById('onlyEdited').checked;
 
-    let marks = this.allMarks.filter(m => m.date === date);
-    if (clientId) marks = marks.filter(m => m.clientId === clientId);
-    if (employeeId) marks = marks.filter(m => m.employeeId === employeeId);
+    const filterBy = (row) => {
+      if (date) {
+        const rowDate = this.normalizeDateForFilter(row.date);
+        if (rowDate !== date) return false;
+      }
+      if (clientId) {
+        const cid = String(row.clientId || '');
+        if (cid !== String(clientId)) return false;
+      }
+      if (employeeId) {
+        const eid = String(row.employeeId || '');
+        if (eid !== String(employeeId)) return false;
+      }
+      return true;
+    };
 
-    let log = this.allLog.filter(l => l.date === date);
-    if (clientId) log = log.filter(l => l.clientId === clientId);
-    if (employeeId) log = log.filter(l => l.employeeId === employeeId);
-    if (onlyEdited) log = log.filter(l => l.type === 'Labots');
+    let marks = this.allMarks.filter(filterBy);
+    let log = this.allLog.filter(filterBy);
+    if (onlyEdited) log = log.filter(l => l.type === 'Labots' || l.type === 'Labots' || l.prevValue);
 
     return { marks, log, date, clientId, employeeId, onlyEdited };
   }
@@ -96,45 +141,118 @@ class ControlPanel {
   }
 
   renderStats(data) {
-    const { marks, date, clientId } = data;
-    const activeClients = this.allClients.filter(c => c.aktivs === true || c.aktivs === 'true' || c.aktivs === 1 || c.aktivs === '1');
+    const { marks, log, date, clientId } = data;
+    const activeClients = this.allClients.filter(c => {
+      const a = c.aktivs;
+      return a === true || a === 'true' || a === 'TRUE' || a === 1 || a === '1' || a === undefined;
+    });
     const targetClients = clientId ? [clientId] : activeClients.map(c => c.id || c.ID);
 
     const completed = new Set();
-    marks.filter(m => m.category === 'paraksts').forEach(m => completed.add(m.clientId));
+    marks.filter(m => m.category === 'paraksts' || m.field === 'aprupetaja_paraksts').forEach(m => {
+      completed.add(m.clientId);
+    });
 
     let tempHigh = 0;
     let fluid = 0;
     let urine = 0;
     let diapers = 0;
+    let foodCount = 0;
 
     marks.forEach(m => {
-      if (m.category === 'temp' && m.field === 'temperatura') {
+      if (m.category === 'temp' && (m.field === 'temperatura' || m.field === 'temperatūra')) {
         const v = parseFloat(m.value);
         if (!isNaN(v) && v >= 37) tempHigh++;
       }
-      if (m.category === 'sikdrumi' && m.field === 'uznemts_ml') {
+      if (m.category === 'sikdrumi' && (m.field === 'uznemts_ml' || m.field === 'uzņemts_ml' || m.field === 'uzņemts_h2o')) {
         fluid += parseFloat(m.value) || 0;
       }
-      if (m.category === 'sikdrumi' && m.field === 'urina_daudzums') {
+      if (m.category === 'sikdrumi' && (m.field === 'urina_daudzums' || m.field === 'urīna_daudzums')) {
         urine += parseFloat(m.value) || 0;
       }
-      if (m.category === 'citsi_pasakomi' && m.field === 'autins_biksitu_skaits') {
+      if (m.category === 'citsi_pasakomi' && (m.field === 'autins_biksitu_skaits' || m.field === 'autiņbiksīšu_skaits')) {
         diapers += parseInt(m.value) || 0;
+      }
+      if (m.category === 'edinasana' || m.category === 'ēdināšana') {
+        if (m.value && m.value !== '') foodCount++;
       }
     });
 
-    const incomplete = targetClients.length - completed.size;
-    const edits = this.allLog.filter(l => l.date === date && l.type === 'Labots').length;
+    const incomplete = Math.max(0, targetClients.length - completed.size);
+    const edits = log.filter(l => l.type === 'Labots' || l.prevValue).length;
 
-    document.getElementById('statTotal').textContent = targetClients.length;
-    document.getElementById('statCompleted').textContent = completed.size;
-    document.getElementById('statIncomplete').textContent = incomplete;
-    document.getElementById('statFever').textContent = tempHigh;
-    document.getElementById('statFluid').textContent = fluid;
-    document.getElementById('statUrine').textContent = urine;
-    document.getElementById('statDiapers').textContent = diapers;
-    document.getElementById('statEdits').textContent = edits;
+    const setText = (id, val) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = val;
+    };
+
+    setText('statTotal', targetClients.length);
+    setText('statCompleted', completed.size);
+    setText('statIncomplete', incomplete);
+    setText('statFever', tempHigh);
+    setText('statFluid', fluid);
+    setText('statUrine', urine);
+    setText('statDiapers', diapers);
+    setText('statEdits', edits);
+    setText('statFood', foodCount);
+  }
+
+  formatTimeForDisplay(t) {
+    if (!t) return '';
+    if (typeof t === 'string') {
+      if (/^\d{2}:\d{2}/.test(t)) return t.substring(0, 5);
+      if (t.includes('T')) {
+        const d = new Date(t);
+        if (!isNaN(d.getTime())) {
+          return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+        }
+      }
+    }
+    return String(t);
+  }
+
+  formatFieldLabel(category, field) {
+    if (!field) return category || '';
+    const map = {
+      'mutes_dobuma_kopsana': 'Mutes dobuma kopšana',
+      'vana_dns': 'Vanna, duša',
+      'daleja_apmazgasana': 'Daļēja apmazgāšana',
+      'velas_maina': 'Veļas maiņa',
+      'nagu_kopsana': 'Nagu kopšana',
+      'matu_kopsana': 'Matu kopšana',
+      'bardas_skushana': 'Bārdas skūšana',
+      'parvietojas_ar_palidzlekli': 'Pārvietojas ar palīglīdzekli',
+      'stav_ar_palidziigu': 'Stāv ar palīdzību',
+      'sedz_ar_palidziigu': 'Sēž ar palīdzību',
+      'temperatura': 'Temperatūra',
+      'brokastis': 'Brokastis',
+      'pusdienas': 'Pusdienas',
+      'launags': 'Launags',
+      'vakariņi': 'Vakariņas',
+      'urina_daudzums': 'Urīna daudzums',
+      'uznemts_ml': 'Uzņemts H2O',
+      'vedera_izeja': 'Vēdera izeja',
+      'adas_kopsana': 'Ādas kopšana',
+      'pastaigas': 'Pastaiga',
+      'ciemini': 'Ciemiņi',
+      'autins_biksitu_skaits': 'Higiēnas maiņa',
+      'aprupetaja_paraksts': 'Paraksts'
+    };
+    return map[field] || field;
+  }
+
+  formatCategoryLabel(category) {
+    const map = {
+      'temp': '🌡️ Temperatūra',
+      'higiena': '🧼 Higiēna',
+      'aktivitate': '🚶 Aktivitāte',
+      'edinasana': '🍽️ Ēdināšana',
+      'sikdrumi': '💧 Šķidrumi',
+      'fiziologija': '🚽 Vēdera izeja',
+      'citsi_pasakomi': '📋 Citi pasākumi',
+      'paraksts': '✍️ Paraksts'
+    };
+    return map[category] || category;
   }
 
   renderHistory() {
@@ -143,32 +261,52 @@ class ControlPanel {
 
     const clientMap = {};
     this.allClients.forEach(c => {
-      clientMap[c.id || c.ID] = (c.vards || c.Vārds || '') + ' ' + (c.uzvards || c.Uzvārds || '');
+      clientMap[String(c.id || c.ID)] = (c.vards || c.Vārds || '') + ' ' + (c.uzvards || c.Uzvārds || '');
     });
 
     const empMap = {};
     this.allEmployees.forEach(e => {
-      empMap[e.id || e.ID] = (e.vards || e.Vārds || '') + ' ' + (e.uzvards || e.Uzvārds || '');
+      empMap[String(e.id || e.ID)] = (e.vards || e.Vārds || '') + ' ' + (e.uzvards || e.Uzvārds || '');
     });
 
     const body = document.getElementById('historyBody');
+    if (!body) return;
+
     if (log.length === 0) {
-      body.innerHTML = '<tr><td colspan="8" class="loading">Nav datu</td></tr>';
+      body.innerHTML = '<tr><td colspan="8" class="loading">Nav datu izvēlētajā datumā / filtrā</td></tr>';
       return;
     }
 
-    body.innerHTML = log.map(l => `
-      <tr>
-        <td>${l.time || ''}</td>
-        <td>${this.escapeHtml(clientMap[l.clientId] || '-')}</td>
-        <td>${this.escapeHtml(empMap[l.employeeId] || '-')}</td>
-        <td>${l.category || ''}</td>
-        <td>${l.field || ''}</td>
-        <td>${this.escapeHtml(l.value || '-')}</td>
-        <td>${this.escapeHtml(l.prevValue || '-')}</td>
-        <td>${l.type || ''}</td>
-      </tr>
-    `).join('');
+    const sorted = [...log].sort((a, b) => {
+      const ta = this.formatTimeForDisplay(a.time);
+      const tb = this.formatTimeForDisplay(b.time);
+      return tb.localeCompare(ta);
+    });
+
+    body.innerHTML = sorted.slice(0, 200).map(l => {
+      const time = this.formatTimeForDisplay(l.time);
+      const cid = String(l.clientId || '');
+      const eid = String(l.employeeId || '');
+      const clientName = clientMap[cid] || ('ID: ' + cid);
+      const empName = empMap[eid] || ('ID: ' + eid);
+      const isEdit = l.type === 'Labots' || l.prevValue;
+      const value = l.value === '' || l.value === undefined ? '<em style="color:#999">(tukšs)</em>' : this.escapeHtml(String(l.value));
+      return `
+        <tr>
+          <td><strong>${time}</strong></td>
+          <td>${this.escapeHtml(clientName.trim())}</td>
+          <td>${this.escapeHtml(empName.trim())}</td>
+          <td>${this.escapeHtml(this.formatCategoryLabel(l.category))}</td>
+          <td>${this.escapeHtml(this.formatFieldLabel(l.category, l.field))}</td>
+          <td>${value}</td>
+          <td>${l.prevValue ? this.escapeHtml(String(l.prevValue)) : '-'}</td>
+          <td>${isEdit ? '<span class="edit-tag">Labots</span>' : '<span class="new-tag">Jauns</span>'}</td>
+        </tr>
+      `;
+    }).join('');
+
+    const countEl = document.getElementById('historyCount');
+    if (countEl) countEl.textContent = log.length + ' ierakstu';
   }
 
   escapeHtml(text) {
@@ -182,24 +320,20 @@ class ControlPanel {
       this.toast('Excel bibliotēka nav ielādēta');
       return;
     }
-
     const date = document.getElementById('dateFilter').value;
     const clientId = document.getElementById('clientFilter').value;
-
     if (!clientId) {
       this.toast('Izvēlieties klientu Excel eksportam');
       return;
     }
-
-    const client = this.allClients.find(c => (c.id || c.ID) === clientId);
+    const client = this.allClients.find(c => String(c.id || c.ID) === String(clientId));
     if (!client) return;
 
     try {
       const exporter = new ExcelExporter();
       const year = parseInt(date.split('-')[0]);
       const month = parseInt(date.split('-')[1]);
-
-      const clientMarks = this.allMarks.filter(m => m.clientId === clientId);
+      const clientMarks = this.allMarks.filter(m => String(m.clientId) === String(clientId));
       const filename = await exporter.generateMonth(client, year, month, clientMarks);
       this.toast('Excel lejupielādēts: ' + filename);
     } catch (err) {
@@ -208,12 +342,9 @@ class ControlPanel {
     }
   }
 
-  getFieldForRow(row) {
-    return null;
-  }
-
   toast(message) {
     const toast = document.getElementById('toast');
+    if (!toast) return;
     toast.textContent = message;
     toast.classList.add('show');
     setTimeout(() => toast.classList.remove('show'), 3000);
