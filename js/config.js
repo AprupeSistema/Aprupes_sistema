@@ -2,9 +2,9 @@ const CONFIG = {
   APP_NAME: 'Aprūpes sistēma',
   VERSION: '1.0.0',
 
-  GAS_URL: 'https://script.google.com/macros/s/AKfycby4b4LQwcpY8BcUwNjzpEyNs8plsDSXjmK0ECOzTFp6VyfQXL1WluEQjX3feYvTqdPMew/exec',
+  GAS_URL: 'https://script.google.com/macros/s/AKfycbwiqRkuGuKUc8bLBLw_WrrO3V-2hcZ-0nPKSmWAgKo6qDq932kL3Rea4n_SOwZosHKs/exec',
 
-  SHEET_ID: '1GjwMhuMzRzYOZ3o3nEo5LvKOCfTxGlgepS56n4wECbU',
+  SHEET_ID: '1OQAdiHsuQEwy180b68oHQ9xxELFV2_CkqDJY7ej0P5E',
 
   SHIFTS: {
     R: 'Rīts',
