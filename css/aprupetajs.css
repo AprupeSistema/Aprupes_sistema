@@ -506,6 +506,87 @@ body {
   font-size: 24px;
 }
 
+.submit-btn {
+  width: 100%;
+  padding: 14px 18px;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition);
+  margin-top: 8px;
+  min-height: 52px;
+  box-shadow: 0 3px 10px rgba(39, 174, 96, 0.3);
+}
+
+.submit-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 14px rgba(39, 174, 96, 0.4);
+}
+
+.submit-btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.submit-btn:disabled {
+  background: var(--gray-dark);
+  cursor: not-allowed;
+  box-shadow: none;
+  opacity: 0.6;
+}
+
+.fiziologija-select {
+  flex-direction: column !important;
+  gap: 2px !important;
+  padding: 12px 8px !important;
+  min-height: 64px !important;
+  font-size: 14px !important;
+  line-height: 1.2;
+}
+
+.fiziologija-select strong {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.fiziologija-select.selected {
+  background: var(--info) !important;
+  color: white !important;
+  border-color: var(--info) !important;
+  box-shadow: 0 2px 8px rgba(52, 152, 219, 0.4) !important;
+}
+
+.fiziologija-desc {
+  font-size: 14px;
+  color: var(--text-light);
+  background: var(--info-bg);
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--info);
+  margin-top: 4px;
+  display: none;
+}
+
+.fiziologija-desc.visible {
+  display: block;
+}
+
+.field-info {
+  font-size: 13px;
+  color: var(--text-light);
+  background: var(--gray-lighter);
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  line-height: 1.6;
+}
+
+.field-info strong {
+  color: var(--primary);
+}
+
 .number-input {
   width: 100%;
   padding: 16px 18px;

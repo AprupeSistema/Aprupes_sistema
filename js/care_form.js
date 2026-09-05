@@ -424,10 +424,18 @@ class CareFormController {
     const body = `
       <div class="section-row">
         <div class="section-row-label">
-          <span>Pēdējā vērtība</span>
-          ${value ? `<span class="current-value ${isFever ? 'fever' : ''}">${value}°C${isFever ? ' 🔥' : ''}</span>` : '<span class="current-value empty"></span>'}
+          <span>Temperatūra (°C)</span>
+          <span class="current-value ${value ? (isFever ? 'fever' : '') : 'empty'}">${value ? (isFever ? '🔥 ' + value + '°C' : '✓ ' + value + '°C') : ''}</span>
         </div>
-        <input type="number" step="0.1" min="30" max="45" class="number-input temp-input ${isFever ? 'fever' : ''} ${value ? 'has-value' : ''}" data-cat="temp" data-field="temperatura" value="${value}" placeholder="36.6">
+        <input type="number" step="0.1" min="30" max="45" class="number-input temp-input ${isFever ? 'fever' : ''} ${value ? 'has-value' : ''}" data-cat="temp" data-field="temperatura" data-shift="${shift}" value="${value}" placeholder="36.6">
+        <button class="submit-btn" data-submit="temp">✓ Saglabāt temperatūru</button>
+      </div>
+      <div class="section-row" style="border-bottom: none;">
+        <div class="field-info">
+          <strong>Norma:</strong> 36.0 - 37.0°C<br>
+          <strong>Drudzis:</strong> virs 37.0°C (iezīmējas sarkanā krāsā)<br>
+          <strong>Padoms:</strong> ievadi vērtību un nospied "Saglabāt temperatūru"
+        </div>
       </div>
     `;
     return this.sectionCard('section-temp', '🌡️', 'Temperatūra', 'temp', body);
@@ -512,14 +520,22 @@ class CareFormController {
           <span>Diennakts urīna daudzums (ml)</span>
           ${urinsMark && urinsMark.value ? `<span class="current-value">${urinsMark.value} ml</span>` : '<span class="current-value empty"></span>'}
         </div>
-        <input type="number" min="0" step="50" class="number-input ${urinsMark && urinsMark.value ? 'has-value' : ''}" data-cat="sikdrumi" data-field="urina_daudzums" value="${urinsMark ? urinsMark.value : ''}" placeholder="0">
+        <input type="number" min="0" step="50" class="number-input sikdrumi-input ${urinsMark && urinsMark.value ? 'has-value' : ''}" data-cat="sikdrumi" data-field="urina_daudzums" data-shift="${shift}" value="${urinsMark ? urinsMark.value : ''}" placeholder="0">
       </div>
       <div class="section-row">
         <div class="section-row-label">
           <span>Uzņemts H2O (24h, ml)</span>
           ${uznemtsMark && uznemtsMark.value ? `<span class="current-value">${uznemtsMark.value} ml</span>` : '<span class="current-value empty"></span>'}
         </div>
-        <input type="number" min="0" step="50" class="number-input ${uznemtsMark && uznemtsMark.value ? 'has-value' : ''}" data-cat="sikdrumi" data-field="uznemts_ml" value="${uznemtsMark ? uznemtsMark.value : ''}" placeholder="0">
+        <input type="number" min="0" step="50" class="number-input sikdrumi-input ${uznemtsMark && uznemtsMark.value ? 'has-value' : ''}" data-cat="sikdrumi" data-field="uznemts_ml" data-shift="${shift}" value="${uznemtsMark ? uznemtsMark.value : ''}" placeholder="0">
+        <button class="submit-btn" data-submit="sikdrumi">✓ Saglabāt šķidrumus</button>
+      </div>
+      <div class="section-row" style="border-bottom: none;">
+        <div class="field-info">
+          <strong>Urīna daudzums:</strong> parasti 1000-2000 ml dienā pieaugušajam.<br>
+          <strong>Uzņemtais šķidrums:</strong> ūdens, tēja, zupa u.c. dzērieni.<br>
+          <strong>Padoms:</strong> ievadi abus laukus un nospied "Saglabāt šķidrumus".
+        </div>
       </div>
     `;
     return this.sectionCard('section-sikdrumi', '💧', 'Šķidrumi', null, body);
@@ -530,6 +546,13 @@ class CareFormController {
     const current = mark ? mark.value : '';
     const labels = { 'N': 'Normāla', 'A': 'Aizcietējums', 'S': 'Svecīte', 'C': 'Caureja', 'K': 'Klizma' };
     const valueLabel = labels[current] || '';
+    const descriptions = {
+      'N': 'Normāla vēdera izeja — bez sarežģījumiem',
+      'A': 'Aizcietējums — grūtības ar vēdera izeju',
+      'S': 'Svecīte — izmantota svecīte',
+      'C': 'Caureja — šķidra vēdera izeja',
+      'K': 'Klizma — veikta klizma'
+    };
     const body = `
       <div class="section-row">
         <div class="section-row-label">
@@ -537,11 +560,28 @@ class CareFormController {
           <span class="current-value ${valueLabel ? '' : 'empty'}">${valueLabel}</span>
         </div>
         <div class="opt-group">
-          <button class="opt-btn fiziologija ${current === 'N' ? 'active' : ''}" data-cat="fiziologija" data-field="vedera_izeja" data-value="N" data-shift="${shift}">N</button>
-          <button class="opt-btn fiziologija ${current === 'A' ? 'active' : ''}" data-cat="fiziologija" data-field="vedera_izeja" data-value="A" data-shift="${shift}">A</button>
-          <button class="opt-btn fiziologija ${current === 'S' ? 'active' : ''}" data-cat="fiziologija" data-field="vedera_izeja" data-value="S" data-shift="${shift}">S</button>
-          <button class="opt-btn fiziologija ${current === 'C' ? 'active' : ''}" data-cat="fiziologija" data-field="vedera_izeja" data-value="C" data-shift="${shift}">C</button>
-          <button class="opt-btn fiziologija ${current === 'K' ? 'active' : ''}" data-cat="fiziologija" data-field="vedera_izeja" data-value="K" data-shift="${shift}">K</button>
+          <button class="opt-btn fiziologija-select ${current === 'N' ? 'selected' : ''}" data-select="fiziologija" data-value="N" data-shift="${shift}">
+            <strong>N</strong> Normāla
+          </button>
+          <button class="opt-btn fiziologija-select ${current === 'A' ? 'selected' : ''}" data-select="fiziologija" data-value="A" data-shift="${shift}">
+            <strong>A</strong> Aizcietējums
+          </button>
+          <button class="opt-btn fiziologija-select ${current === 'S' ? 'selected' : ''}" data-select="fiziologija" data-value="S" data-shift="${shift}">
+            <strong>S</strong> Svecīte
+          </button>
+          <button class="opt-btn fiziologija-select ${current === 'C' ? 'selected' : ''}" data-select="fiziologija" data-value="C" data-shift="${shift}">
+            <strong>C</strong> Caureja
+          </button>
+          <button class="opt-btn fiziologija-select ${current === 'K' ? 'selected' : ''}" data-select="fiziologija" data-value="K" data-shift="${shift}">
+            <strong>K</strong> Klizma
+          </button>
+        </div>
+        <div id="fiziologijaDesc" class="fiziologija-desc ${current ? 'visible' : ''}">${current ? descriptions[current] : 'Izvēlieties vienu no opcijām un nospiediet "Saglabāt".'}</div>
+        <button class="submit-btn" data-submit="fiziologija" ${current ? '' : 'disabled'}>✓ Saglabāt izvēli</button>
+      </div>
+      <div class="section-row" style="border-bottom: none;">
+        <div class="field-info">
+          Šī sadaļa apraksta vēdera izejas veidu. Izvēlieties atbilstošo burtu un nospiediet "Saglabāt izvēli". Pirms saglabāšanas nekas netiek ierakstīts.
         </div>
       </div>
     `;
@@ -630,7 +670,7 @@ class CareFormController {
   }
 
   bindFormEvents() {
-    document.querySelectorAll('.opt-btn:not(.diaper-btn)').forEach(btn => {
+    document.querySelectorAll('.opt-btn:not(.diaper-btn):not(.fiziologija-select)').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const cat = e.currentTarget.dataset.cat;
         const field = e.currentTarget.dataset.field;
@@ -649,28 +689,89 @@ class CareFormController {
       });
     });
 
-    document.querySelectorAll('.number-input').forEach(input => {
-      let debounceTimer;
-      input.addEventListener('input', (e) => {
-        const cat = e.currentTarget.dataset.cat;
-        const field = e.currentTarget.dataset.field;
-        const value = e.currentTarget.value;
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => {
-          if (value !== '' && value !== null) {
-            this.handleNumberChange(cat, field, value);
-          }
-        }, 600);
+    document.querySelectorAll('.fiziologija-select').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        document.querySelectorAll('.fiziologija-select').forEach(b => b.classList.remove('selected'));
+        e.currentTarget.classList.add('selected');
+        const desc = document.getElementById('fiziologijaDesc');
+        const descriptions = {
+          'N': 'Normāla vēdera izeja — bez sarežģījumiem',
+          'A': 'Aizcietējums — grūtības ar vēdera izeju',
+          'S': 'Svecīte — izmantota svecīte',
+          'C': 'Caureja — šķidra vēdera izeja',
+          'K': 'Klizma — veikta klizma'
+        };
+        if (desc) {
+          desc.textContent = descriptions[e.currentTarget.dataset.value] || '';
+          desc.classList.add('visible');
+        }
+        const submitBtn = document.querySelector('[data-submit="fiziologija"]');
+        if (submitBtn) submitBtn.disabled = false;
       });
-      input.addEventListener('blur', (e) => {
-        const cat = e.currentTarget.dataset.cat;
-        const field = e.currentTarget.dataset.field;
-        const value = e.currentTarget.value;
-        if (value !== '' && value !== null) {
-          this.handleNumberChange(cat, field, value);
+    });
+
+    document.querySelectorAll('.submit-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const type = e.currentTarget.dataset.submit;
+        if (type === 'temp') {
+          const input = document.querySelector('input[data-cat="temp"][data-field="temperatura"]');
+          if (input && input.value) {
+            this.handleNumberChange('temp', 'temperatura', input.value, this.currentShift);
+          } else {
+            this.toast('Ievadiet temperatūras vērtību');
+          }
+        } else if (type === 'sikdrumi') {
+          this.handleSikdrumiSubmit();
+        } else if (type === 'fiziologija') {
+          this.handleFiziologijaSubmit();
         }
       });
     });
+
+    document.querySelectorAll('.number-input').forEach(input => {
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          const submitType = input.dataset.cat === 'temp' ? 'temp' :
+                            input.dataset.cat === 'sikdrumi' ? 'sikdrumi' : null;
+          if (submitType) {
+            const btn = document.querySelector('[data-submit="' + submitType + '"]');
+            if (btn) btn.click();
+          }
+        }
+      });
+    });
+  }
+
+  async handleSikdrumiSubmit() {
+    const urinsInput = document.querySelector('input[data-cat="sikdrumi"][data-field="urina_daudzums"]');
+    const uznemtsInput = document.querySelector('input[data-cat="sikdrumi"][data-field="uznemts_ml"]');
+    if (!urinsInput && !uznemtsInput) return;
+    const urinsVal = urinsInput ? urinsInput.value : '';
+    const uznemtsVal = uznemtsInput ? uznemtsInput.value : '';
+    if (urinsVal === '' && uznemtsVal === '') {
+      this.toast('Ievadiet vismaz vienu vērtību');
+      return;
+    }
+    if (urinsVal !== '') {
+      await this.handleNumberChange('sikdrumi', 'urina_daudzums', urinsVal, this.currentShift);
+    }
+    if (uznemtsVal !== '') {
+      await this.handleNumberChange('sikdrumi', 'uznemts_ml', uznemtsVal, this.currentShift);
+    }
+    this.toast('✓ Šķidrumi saglabāti');
+  }
+
+  async handleFiziologijaSubmit() {
+    const selected = document.querySelector('.fiziologija-select.selected');
+    if (!selected) {
+      this.toast('Izvēlieties vērtību');
+      return;
+    }
+    const value = selected.dataset.value;
+    const shift = selected.dataset.shift;
+    await this.handleOptionSelect(shift, 'fiziologija', 'vedera_izeja', value, selected);
   }
 
   async handleDiaperIncrement(shift, category, field, btn) {
@@ -757,18 +858,23 @@ class CareFormController {
 
     const catMap = { temp: 'temp', higiena: 'higiena', aktivitate: 'aktivitate', edinasana: 'edinasana', sikdrumi: 'sikdrumi', fiziologija: 'fiziologija', citsi_pasakomi: 'citi' };
     const openCat = catMap[category];
-    if (openCat) {
+    if (openCat && category !== 'fiziologija') {
       this.openCategoryModal(openCat);
+    } else if (category === 'fiziologija') {
+      const modal = document.getElementById('categoryModal');
+      if (modal) modal.style.display = 'none';
+      this.updateCategoryStatuses();
     }
     await this.loadHistory();
     this.renderHistory();
     this.toast('Saglabāts');
   }
 
-  async handleNumberChange(category, field, value) {
+  async handleNumberChange(category, field, value, shiftOverride) {
+    const shift = shiftOverride || this.currentShift;
     await this.saveMark({
       clientId: this.clientId,
-      shift: this.currentShift,
+      shift: shift,
       category: category,
       field: field,
       value: value,
