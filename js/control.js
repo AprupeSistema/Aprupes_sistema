@@ -45,7 +45,26 @@ class ControlPanel {
 
     const today = new Date().toISOString().split('T')[0];
     const dateEl = document.getElementById('dateFilter');
-    if (dateEl) dateEl.value = today;
+    if (dateEl) {
+      dateEl.value = today;
+      dateEl.addEventListener('change', () => this.renderAll());
+    }
+
+    const addDateRangeUI = () => {
+      const filterBar = document.querySelector('.filter-bar');
+      if (!filterBar || document.getElementById('showAllBtn')) return;
+      const btn = document.createElement('button');
+      btn.id = 'showAllBtn';
+      btn.className = 'btn-secondary';
+      btn.textContent = 'Rādīt visu';
+      btn.style.cssText = 'padding:8px 14px;border:1px solid #2c3e50;background:white;color:#2c3e50;border-radius:6px;cursor:pointer;font-size:13px;margin-left:8px;';
+      btn.addEventListener('click', () => {
+        if (dateEl) dateEl.value = '';
+        this.renderAll();
+      });
+      filterBar.appendChild(btn);
+    };
+    addDateRangeUI();
 
     document.getElementById('refreshBtn').addEventListener('click', () => this.renderAll());
     document.getElementById('exportBtn').addEventListener('click', () => this.exportExcel());
@@ -114,7 +133,7 @@ class ControlPanel {
     const filterBy = (row) => {
       if (date) {
         const rowDate = this.normalizeDateForFilter(row.date);
-        if (rowDate !== date) return false;
+        if (rowDate && rowDate !== date) return false;
       }
       if (clientId) {
         const cid = String(row.clientId || '');
