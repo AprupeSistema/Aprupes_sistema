@@ -121,7 +121,27 @@ class ControlPanel {
         return p[2] + '-' + p[0] + '-' + p[1];
       }
     }
-    return d;
+    return '';
+  }
+
+  extractDateFromAnyField(row) {
+    const candidates = [row.date, row.created, row.lastModified, row.izveidots, row.pedeja_laiks];
+    for (const c of candidates) {
+      if (!c) continue;
+      const s = typeof c === 'string' ? c : (c instanceof Date ? c.toISOString() : '');
+      if (!s) continue;
+      const m1 = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (m1) {
+        const y = parseInt(m1[1]);
+        if (y >= 2024 && y <= 2030) return m1[0];
+      }
+      const m2 = s.match(/(\d{4}-\d{2}-\d{2})/);
+      if (m2) {
+        const y = parseInt(m2[1].substring(0, 4));
+        if (y >= 2024 && y <= 2030) return m2[1];
+      }
+    }
+    return '';
   }
 
   getFilteredData() {
@@ -132,7 +152,7 @@ class ControlPanel {
 
     const filterBy = (row) => {
       if (date) {
-        const rowDate = this.normalizeDateForFilter(row.date);
+        const rowDate = this.extractDateFromAnyField(row);
         if (rowDate && rowDate !== date) return false;
       }
       if (clientId) {

@@ -132,11 +132,43 @@ class CareFormController {
     return d.toLocaleDateString('lv-LV');
   }
 
+  extractDate(v) {
+    if (!v) return '';
+    if (v instanceof Date) {
+      const y = v.getFullYear();
+      const m = String(v.getMonth() + 1).padStart(2, '0');
+      const d = String(v.getDate()).padStart(2, '0');
+      return y + '-' + m + '-' + d;
+    }
+    if (typeof v === 'string') {
+      if (/^\d{4}-\d{2}-\d{2}/.test(v)) return v.substring(0, 10);
+      if (/^\d{2}\.\d{2}\.\d{4}$/.test(v)) {
+        const p = v.split('.');
+        return p[2] + '-' + p[1] + '-' + p[0];
+      }
+    }
+    return v;
+  }
+
+  extractTimeForSort(t) {
+    if (!t) return '';
+    if (typeof t === 'string') {
+      if (/^\d{2}:\d{2}/.test(t)) return t.substring(0, 5);
+      const m = t.match(/T(\d{2}):(\d{2})/);
+      if (m) return m[1] + ':' + m[2];
+    }
+    return String(t);
+  }
+
   async loadMarks() {
     const today = new Date().toISOString().split('T')[0];
     const allMarks = await this.db.getAll('atzimes');
     this.marks.clear();
-    allMarks.filter(m => m.clientId === this.clientId && m.date === today)
+    allMarks.filter(m => m.clientId === this.clientId)
+            .filter(m => {
+              const md = this.extractDate(m.date) || this.extractDate(m.created) || this.extractDate(m.lastModified);
+              return !md || md === today;
+            })
             .forEach(m => {
               const key = m.shift + '|' + m.category + '|' + m.field;
               this.marks.set(key, m);
@@ -147,8 +179,16 @@ class CareFormController {
     const today = new Date().toISOString().split('T')[0];
     const allLog = await this.db.getAll('atzimes_log');
     this.history = allLog
-      .filter(l => l.clientId === this.clientId && l.date === today)
-      .sort((a, b) => new Date(b.time || 0) - new Date(a.time || 0));
+      .filter(l => l.clientId === this.clientId)
+      .filter(l => {
+        const ld = this.extractDate(l.date) || this.extractDate(l.created) || this.extractDate(l.izveidots);
+        return !ld || ld === today;
+      })
+      .sort((a, b) => {
+        const ta = this.extractTimeForSort(a.time);
+        const tb = this.extractTimeForSort(b.time);
+        return tb.localeCompare(ta);
+      });
 
     const employees = await this.db.getAll('darbinieki');
     const empMap = {};
